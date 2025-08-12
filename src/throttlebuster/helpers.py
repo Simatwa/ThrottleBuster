@@ -2,9 +2,13 @@
 
 import asyncio
 import logging
+import re
+import typing as t
+
+from throttlebuster.constants import ILLEGAL_CHARACTERS_PATTERN
 
 logger = logging.getLogger(__name__)
-loop = asyncio.get_event_loop()
+loop = asyncio.new_event_loop()
 
 
 class DownloadUtils:
@@ -62,6 +66,14 @@ class DownloadUtils:
             return filename
 
 
+def assert_instance(obj: object, class_or_tuple, name: str = "Parameter") -> t.NoReturn:
+    """assert obj an instance of class_or_tuple"""
+
+    assert isinstance(obj, class_or_tuple), (
+        f"{name} value needs to be an instance of/any of {class_or_tuple} not {type(obj)}"
+    )
+
+
 def get_filesize_string(size_in_bytes: int) -> str:
     """Get something like `343 MB` or `1.25 GB` depending on size_in_bytes."""
     units = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
@@ -72,3 +84,19 @@ def get_filesize_string(size_in_bytes: int) -> str:
         else:
             break
     return f"{size_in_bytes:.2f} {unit}"
+
+
+def get_duration_string(time_in_seconds: int) -> str:
+    """Get something like `2 Mins` or `3 Secs` depending on time_in_seconds."""
+    units = ["Secs", "Mins", "Hrs"]
+    for unit in units:
+        if time_in_seconds >= 60.0:
+            time_in_seconds /= 60.0
+        else:
+            break
+    return f"{time_in_seconds:.2f} {unit}"
+
+
+def sanitize_filename(filename: str) -> str:
+    """Remove illegal characters from a filename"""
+    return re.sub(ILLEGAL_CHARACTERS_PATTERN, "", filename.replace(":", "-"))

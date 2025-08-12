@@ -1,0 +1,56 @@
+import os
+
+import pytest
+
+from tests import DOWNLOAD_DIR, FILE_URL, PART_DIR
+from throttlebuster import DownloadedFile, DownloadMode, ThrottleBuster
+
+
+def test_download_test():
+    throttlebuster = ThrottleBuster(dir=DOWNLOAD_DIR, part_dir=PART_DIR)
+    response = throttlebuster.run_sync(FILE_URL, test=True)
+    assert response.is_success
+
+
+@pytest.mark.parametrize(
+    argnames=["threads_amount"],
+    argvalues=[
+        (1,),
+        (2,),
+        (3,),
+    ],
+)
+def test_real_download(threads_amount: int):
+    throttlebuster = ThrottleBuster(
+        dir=DOWNLOAD_DIR,
+        part_dir=PART_DIR,
+        threads=threads_amount,
+    )
+    downloaded_file = throttlebuster.run_sync(
+        FILE_URL, download_mode=DownloadMode.START, disable_progress_bar=True
+    )
+    assert downloaded_file.saved_to.exists()
+    assert downloaded_file.threads_used == threads_amount
+    assert downloaded_file.is_complete
+
+
+def test_different_threads_time():
+    downloaded_file_items: list[DownloadedFile] = []
+
+    for thread in range(1, 5):
+        throttlebuster = ThrottleBuster(dir=DOWNLOAD_DIR, part_dir=PART_DIR, threads=thread)
+        downloaded_file = throttlebuster.run_sync(
+            FILE_URL, download_mode=DownloadMode.START, disable_progress_bar=True
+        )
+        assert downloaded_file.is_complete
+
+        for file_part in downloaded_file.file_parts:
+            assert file_part.is_complete
+
+        if downloaded_file_items:
+            previous_dowloaded_file = downloaded_file_items[-1]
+            assert downloaded_file.duration < previous_dowloaded_file.duration
+
+        downloaded_file_items.append(downloaded_file)
+
+        os.remove(downloaded_file.saved_to)

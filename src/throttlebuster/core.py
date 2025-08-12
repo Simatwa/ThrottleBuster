@@ -16,9 +16,18 @@ from throttlebuster.constants import (
     DEFAULT_REQUEST_HEADERS,
     DOWNLOAD_PART_EXTENSION,
     THREADS_LIMIT,
+    DownloadMode,
 )
 from throttlebuster.exceptions import FilenameNotFoundError, FilesizeNotFoundError
-from throttlebuster.helpers import DownloadUtils, get_filesize_string, loop
+from throttlebuster.helpers import (
+    DownloadUtils,
+    assert_instance,
+    get_duration_string,
+    get_filesize_string,
+    logger,
+    loop,
+    sanitize_filename,
+)
 from throttlebuster.models import DownloadedFile, DownloadTracker
 
 warnings.simplefilter("ignore", category=(tqdm.std.TqdmWarning,))
@@ -33,6 +42,11 @@ class ThrottleBuster(DownloadUtils):
 
     This will only be useful when the throttling is done per `download
     stream` and NOT `per IP address` and server supports resuming download.
+
+    #### NOTE
+    Remember that increasing the number of concurrent tasks beyond what your
+    system can handle efficiently may lead to performance degradation rather
+    than improvement
     """
 
     threads_limit: int = THREADS_LIMIT
@@ -61,9 +75,9 @@ class ThrottleBuster(DownloadUtils):
         kwargs : Keyword arguments for `httpx.AsyncClient`
         """  # noqa: E501
         # TODO: add temp-dir
-        assert (
-            threads > 0 and threads < self.threads_limit
-        ), f"Value for threads should be atleast 1 and at most {self.threads_limit}"
+        assert threads > 0 and threads <= self.threads_limit, (
+            f"Value for threads should be atleast 1 and at most {self.threads_limit}"
+        )
 
         self.chunk_size = chunk_size * 1_024
         self.threads = int(threads)
@@ -76,13 +90,11 @@ class ThrottleBuster(DownloadUtils):
 
     def __repr__(self) -> str:
         return (
-            rf"{self.__module__}.{self.__class__.__name__} "
+            rf"<{self.__module__}.{self.__class__.__name__} threads={self.threads} "
             rf'dir="{self.dir}", chunk_size_in_bytes={self.chunk_size}>'
         )
 
-    def _generate_saved_to(
-        self, filename: str, dir: Path, index: int | None = None
-    ) -> Path:
+    def _generate_saved_to(self, filename: str, dir: Path, index: int | None = None) -> Path:
         filename, ext = os.path.splitext(filename)
         index = f".{index}" if index is not None else ""
         ext = ext if ext else ""
@@ -94,9 +106,7 @@ class ThrottleBuster(DownloadUtils):
         new_headers["Range"] = f"bytes={bytes_offset}-"
         return new_headers
 
-    async def _call_progress_hook(
-        self, progress_hook: callable, download_tracker: DownloadTracker
-    ) -> None:
+    async def _call_progress_hook(self, progress_hook: callable, download_tracker: DownloadTracker) -> None:
         """Interacts with progress hook"""
         if progress_hook is None:
             return
@@ -125,20 +135,32 @@ class ThrottleBuster(DownloadUtils):
         Returns:
             Path: Filepath to the merged parts.
         """
+
         filename = self.dir.joinpath(filename)
         ordered_parts: list[DownloadTracker] = []
+
         for part in file_parts:
             assert part.saved_to.exists(), f"Part not found in downloaded path {part}"
             assert part.is_complete, f"Incomplete file part {part}"
             ordered_parts.insert(part.index, part)
 
+        logger.info(f'Merging {len(file_parts)} file parts to "{filename}"')
+
         with open(
             filename,
-            "wb+",
+            "wb",
         ) as fh:
             for part in ordered_parts:
                 with open(part.saved_to, "rb") as part_fh:
-                    fh.write(part_fh.read(part.expected_size))
+                    saved_size = 0
+                    read_size = self.chunk_size
+
+                    while saved_size < part.expected_size:
+                        chunk = part_fh.read(min(read_size, part.expected_size - saved_size))
+                        if not chunk:
+                            break
+                        fh.write(chunk)
+                        saved_size += len(chunk)
 
                 if clear_parts:
                     os.remove(part.saved_to)
@@ -151,21 +173,54 @@ class ThrottleBuster(DownloadUtils):
         progress_bar: tqdm.tqdm,
         progress_hook: callable,
     ) -> DownloadTracker:
-        """Downloads each download part"""
+        """Downloads each file part"""
+
+        resume = False
+        write_mode = "wb"
+
+        match download_tracker.download_mode:
+            case DownloadMode.AUTO:
+                resume = download_tracker.saved_to.exists()
+
+            case DownloadMode.RESUME:
+                resume = download_tracker.saved_to.exists()
+
+        if resume:
+            write_mode = "ab"
+            download_tracker.download_mode = DownloadMode.RESUME
+            downloaded_size = os.path.getsize(download_tracker.saved_to)
+            download_tracker.bytes_offset += downloaded_size
+            download_tracker.update_downloaded_size(downloaded_size)
+            # progress_bar.update(downloaded_size)
+            # progress_bar.total -= downloaded_size
+            # TODO: Fix this so that progressbar is shown
+
+        else:
+            download_tracker.download_mode = DownloadMode.START
+
+        logger.info(
+            f"Downloading file-part {download_tracker.index} "
+            f"({get_filesize_string(download_tracker.downloaded_size)}/"
+            f'{get_filesize_string(download_tracker.expected_size)}) to "{download_tracker.saved_to}" '
+            f"resume - {resume}"
+        )
+
         async with self.client.stream(
             "GET",
             url=download_tracker.url,
             headers=self._create_headers(download_tracker.bytes_offset),
         ) as stream:
             stream.raise_for_status()
-            with open(download_tracker.saved_to, "wb") as fh:
+
+            with open(download_tracker.saved_to, write_mode) as fh:
                 async for chunk in stream.aiter_bytes(self.chunk_size):
                     fh.write(chunk)
+
                     download_tracker.update_downloaded_size(len(chunk))
-                    progress_bar.update(
-                        self.bytes_to_mb(download_tracker.streaming_chunk_size)
-                    )
+
+                    progress_bar.update(self.bytes_to_mb(download_tracker.streaming_chunk_size))
                     await self._call_progress_hook(progress_hook, download_tracker)
+
                     if download_tracker.is_complete:
                         # Done downloading it's part
                         break
@@ -177,6 +232,7 @@ class ThrottleBuster(DownloadUtils):
         url: str,
         filename: str = None,
         progress_hook: callable = None,
+        download_mode: DownloadMode = DownloadMode.AUTO,
         disable_progress_bar: bool = None,
         file_size: int = None,
         clear_parts: bool = True,
@@ -193,6 +249,7 @@ class ThrottleBuster(DownloadUtils):
             url (str): Url of the file to be downloaded.
             filename (str, optional): Filename for the downloaded content. Defaults to None.
             progress_hook (callable, optional): Function to call with the download progress information. Defaults to None.
+            download_mode (DownloadMode, optional): Whether to start or resume incomplete . Defaults DownloadMode.AUTO.
             disable_progress_bar (bool, optional): Do not show progress_bar. Defaults to None (decide based on progress_hook).
             file_size (int, optional): Size of the file to be downloaded. Defaults to None.
             clear_parts (bool, optional): Whether to delete the download parts. Defaults to True.
@@ -208,11 +265,15 @@ class ThrottleBuster(DownloadUtils):
             DownloadedFile | httpx.Response: Path where the media file has been saved to or httpx Response (test).
         """  # noqa: E501
 
+        assert_instance(download_mode, DownloadMode)
+
         async_task_items = []
         download_tracker_items = []
 
         if disable_progress_bar is None:
             disable_progress_bar = progress_hook is not None
+
+        logger.info(f'Initializing download with url - "{url}"')
 
         async with self.client.stream("GET", url=url) as stream:
             stream.raise_for_status()
@@ -234,11 +295,27 @@ class ThrottleBuster(DownloadUtils):
                         "Unable to get filename. Pass filename value to suppress this error"
                     )
 
+            filename = sanitize_filename(filename)
+
+            final_saved_to = self._generate_saved_to(filename, self.dir)
+
             if content_length is None:
                 raise FilesizeNotFoundError(
                     "Unable to get the content-length of the file from server response. "
                     "Set the content-length using parameter file_size to suppress this error."
                 )
+
+            elif not test and final_saved_to.exists() and download_mode is not DownloadMode.START:
+                if os.path.getsize(final_saved_to) == content_length:
+                    logger.warning(f'Download already completed for the file in path "{final_saved_to}"')
+                    return DownloadedFile(
+                        url=url,
+                        saved_to=final_saved_to,
+                        size=os.path.getsize(final_saved_to),
+                        duration=0,
+                        file_parts=[],
+                        expected_size=content_length,
+                    )
 
             size_with_unit = get_filesize_string(content_length)
             filename_disp = filename if len(filename) <= 8 + 3 else filename[:8] + "..."
@@ -259,18 +336,15 @@ class ThrottleBuster(DownloadUtils):
                 **kwargs,
             )
 
-            for index, offset_load in enumerate(
-                self.get_offset_load(content_length, self.threads)
-            ):
+            for index, offset_load in enumerate(self.get_offset_load(content_length, self.threads)):
                 offset, load = offset_load
                 download_tracker = DownloadTracker(
                     url=url,
-                    saved_to=self._generate_saved_to(
-                        filename + self.part_extension, self.part_dir, index
-                    ),
+                    saved_to=self._generate_saved_to(filename + self.part_extension, self.part_dir, index),
                     index=index,
                     bytes_offset=offset,
                     expected_size=load,
+                    download_mode=download_mode,
                 )
 
                 download_tracker_items.append(download_tracker)
@@ -285,19 +359,26 @@ class ThrottleBuster(DownloadUtils):
 
             download_start_time = time.time()
             file_parts = await asyncio.gather(*async_task_items)
-            download_time = time.time() - download_start_time
+            download_duration = time.time() - download_start_time
 
-            saved_to = self._merge_parts(
-                file_parts, filename=filename, clear_parts=clear_parts
-            )
+            saved_to = self._merge_parts(file_parts, filename=filename, clear_parts=clear_parts)
 
-            return DownloadedFile(
+            downloaded_file = DownloadedFile(
                 url=url,
                 saved_to=saved_to,
+                expected_size=content_length,
                 size=os.path.getsize(saved_to),
                 file_parts=file_parts,
-                time_taken=download_time,
+                duration=download_duration,
             )
+
+            logger.info(
+                f"Done downloading {get_filesize_string(downloaded_file.size)} "
+                f" in {get_duration_string(downloaded_file.duration)} "
+                f'saved to "{downloaded_file.saved_to}"'
+            )
+
+            return downloaded_file
 
     def run_sync(self, *args, **kwargs) -> DownloadedFile | httpx.Response:
         """Synchronously initiate download process of a file."""

@@ -11,8 +11,9 @@ __author__ = "Smartwa"
 __repo__ = "https://github.com/Simatwa/throttlebuster"
 
 
+from throttlebuster.constants import DownloadMode
 from throttlebuster.core import ThrottleBuster
 from throttlebuster.helpers import logger
-from throttlebuster.models import DownloadTracker
+from throttlebuster.models import DownloadedFile, DownloadTracker
 
-__all__ = ["ThrottleBuster", "DownloadTracker", "logger"]
+__all__ = ["ThrottleBuster", "DownloadTracker", "DownloadedFile", "DownloadMode", "logger"]

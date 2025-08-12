@@ -19,6 +19,8 @@ This is a Python library designed to accelerate file downloads by overcoming com
 Key Feature:
 
 - Concurrent downloading across multiple threads
+- Fully asynchronous with synchronous support
+
 
 ## Installation
 
@@ -26,17 +28,88 @@ Key Feature:
 $ pip install throttlebuster
 ```
 
-## Usage Example
+## Usage
+
+<details open>
+
+<summary>
+
+### Developer
+</summary>
+
+```python
+
+from throttlebuster import ThrottleBuster
+
+async def main():
+    throttlebuster = ThrottleBuster()
+    downloaded_file = await throttlebuster.run(
+        "http://localhost:8888/test.1.opus",
+    )
+    print(
+        downloaded_file
+    )
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
+
+```
+
+Perform download with custom progress hook
+
+```python
+from throttlebuster import DownloadTracker, ThrottleBuster
+
+
+async def callback_function(data: DownloadTracker):
+    percent = (data.downloaded_size / data.expected_size) * 100
+    print(f"> Downloading {data.saved_to.name} {percent:.2f}%", end="\r")
+
+
+async def main():
+    throttlebuster = ThrottleBuster(threads=1)
+    downloaded_file await throttlebuster.run(
+        "http://localhost:8888/test.1.opus", progress_hook=callback_function
+    )
+    print(
+        downloaded_file
+    )
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
+
+```
+
+<details>
+
+<summary>
+
+#### Synchronous
+</summary>
 
 ```python
 from throttlebuster import ThrottleBuster
 
 throttlebuster = ThrottleBuster()
 
-details = throttlebuster.run_sync("http://localhost:8888/test.1.opus")
+downloaed_file = throttlebuster.run_sync("http://localhost:8888/test.1.opus")
 
 print(
-    details
+    downloaded_file
 )
 
+```
+</details>
+
+</details>
+
+### Commandline
+
+```
+$ echo "Coming soon!"
 ```

@@ -3,6 +3,8 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from throttlebuster.constants import DownloadMode
+
 
 @dataclass(frozen=False)
 class DownloadTracker:
@@ -15,6 +17,7 @@ class DownloadTracker:
     expected_size: int
     streaming_chunk_size: int = 0
     downloaded_size: int = 0
+    download_mode: DownloadMode = DownloadMode.AUTO
 
     @property
     def is_complete(self) -> bool:
@@ -41,13 +44,16 @@ class DownloadedFile:
 
     url: str
     saved_to: Path
+    expected_size: int
     size: int
-    time_taken: int
+    duration: int
     """Download time in seconds"""
-    file_parts: list[DownloadTracker] = field(
-        default_factory=list
-    )
+    file_parts: list[DownloadTracker] = field(default_factory=list)
 
     @property
     def threads_used(self) -> int:
         return len(self.file_parts)
+
+    @property
+    def is_complete(self) -> bool:
+        return self.expected_size == self.size

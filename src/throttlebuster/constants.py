@@ -1,6 +1,8 @@
 """Constant variables"""
 
 import os
+import re
+from enum import StrEnum
 from pathlib import Path
 
 CURRENT_WORKING_DIR = Path(os.getcwd())
@@ -15,4 +17,16 @@ DEFAULT_REQUEST_COOKIES = {}
 
 DOWNLOAD_PART_EXTENSION = ".part"
 
-THREADS_LIMIT = 15
+THREADS_LIMIT = 1000
+
+ILLEGAL_CHARACTERS_PATTERN = re.compile(r"[^\w\-_\.\s()&|]")
+
+
+class DownloadMode(StrEnum):
+    START = "start"
+    RESUME = "resume"
+    AUTO = "auto"
+
+    @classmethod
+    def map(cls):
+        return {"start": cls.START, "resume": cls.RESUME, "auto": cls.AUTO}
