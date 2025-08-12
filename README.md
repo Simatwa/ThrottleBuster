@@ -14,7 +14,7 @@
 <!-- TODO: Add logo & wakatime-->
 </div>
 
-This is a Python library designed to accelerate file downloads by overcoming common throttling restrictions aiming to reduce download times for large files.
+This is a Python library designed to accelerate file downloads by overcoming common throttling restrictions aiming to reduce download period for large files.
 
 Key Feature:
 
