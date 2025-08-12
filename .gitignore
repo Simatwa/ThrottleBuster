@@ -210,3 +210,4 @@ test-*.py
 *.mkv
 *.opus
 *.part
+commit-msg*.txt

@@ -61,9 +61,9 @@ class ThrottleBuster(DownloadUtils):
         kwargs : Keyword arguments for `httpx.AsyncClient`
         """  # noqa: E501
         # TODO: add temp-dir
-        assert threads > 0 and threads < self.threads_limit, (
-            f"Value for threads should be atleast 1 and at most {self.threads_limit}"
-        )
+        assert (
+            threads > 0 and threads < self.threads_limit
+        ), f"Value for threads should be atleast 1 and at most {self.threads_limit}"
 
         self.chunk_size = chunk_size * 1_024
         self.threads = int(threads)
@@ -80,10 +80,12 @@ class ThrottleBuster(DownloadUtils):
             rf'dir="{self.dir}", chunk_size_in_bytes={self.chunk_size}>'
         )
 
-    def _generate_saved_to(self, filename: str, dir: Path, index: int | None = None) -> Path:
+    def _generate_saved_to(
+        self, filename: str, dir: Path, index: int | None = None
+    ) -> Path:
         filename, ext = os.path.splitext(filename)
         index = f".{index}" if index is not None else ""
-        ext = "." + ext if ext else ""
+        ext = ext if ext else ""
 
         return dir.joinpath(f"{filename}{index}{ext}")
 
@@ -92,8 +94,10 @@ class ThrottleBuster(DownloadUtils):
         new_headers["Range"] = f"bytes={bytes_offset}-"
         return new_headers
 
-    async def _call_progress_hook(self, progress_hook: callable, download_tracker: DownloadTracker) -> None:
-        """Interacts with progress book"""
+    async def _call_progress_hook(
+        self, progress_hook: callable, download_tracker: DownloadTracker
+    ) -> None:
+        """Interacts with progress hook"""
         if progress_hook is None:
             return
 
@@ -158,7 +162,9 @@ class ThrottleBuster(DownloadUtils):
                 async for chunk in stream.aiter_bytes(self.chunk_size):
                     fh.write(chunk)
                     download_tracker.update_downloaded_size(len(chunk))
-                    progress_bar.update(self.bytes_to_mb(download_tracker.streaming_chunk_size))
+                    progress_bar.update(
+                        self.bytes_to_mb(download_tracker.streaming_chunk_size)
+                    )
                     await self._call_progress_hook(progress_hook, download_tracker)
                     if download_tracker.is_complete:
                         # Done downloading it's part
@@ -235,7 +241,7 @@ class ThrottleBuster(DownloadUtils):
                 )
 
             size_with_unit = get_filesize_string(content_length)
-            filename_disp = filename if len(filename) <= 8 else filename[:8] + "..."
+            filename_disp = filename if len(filename) <= 8 + 3 else filename[:8] + "..."
 
             p_bar = tqdm.tqdm(
                 total=self.bytes_to_mb(content_length),
@@ -253,11 +259,15 @@ class ThrottleBuster(DownloadUtils):
                 **kwargs,
             )
 
-            for index, offset_load in enumerate(self.get_offset_load(content_length, self.threads)):
+            for index, offset_load in enumerate(
+                self.get_offset_load(content_length, self.threads)
+            ):
                 offset, load = offset_load
                 download_tracker = DownloadTracker(
                     url=url,
-                    saved_to=self._generate_saved_to(filename + self.part_extension, self.part_dir, index),
+                    saved_to=self._generate_saved_to(
+                        filename + self.part_extension, self.part_dir, index
+                    ),
                     index=index,
                     bytes_offset=offset,
                     expected_size=load,
@@ -277,13 +287,15 @@ class ThrottleBuster(DownloadUtils):
             file_parts = await asyncio.gather(*async_task_items)
             download_time = time.time() - download_start_time
 
-            saved_to = self._merge_parts(file_parts, filename=filename, clear_parts=clear_parts)
+            saved_to = self._merge_parts(
+                file_parts, filename=filename, clear_parts=clear_parts
+            )
 
             return DownloadedFile(
                 url=url,
                 saved_to=saved_to,
                 size=os.path.getsize(saved_to),
-                # file_parts=file_parts,
+                file_parts=file_parts,
                 time_taken=download_time,
             )
 

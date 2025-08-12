@@ -1,6 +1,6 @@
 """Dataclasses module"""
 
-from dataclasses import Field, dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
@@ -42,20 +42,11 @@ class DownloadedFile:
     url: str
     saved_to: Path
     size: int
-    """
-    file_parts: DownloadTracker = Field(
-        [],
-        default_factory=list,
-        init=True,
-        repr=True,
-        hash=True,
-        compare=True,
-        metadata={},
-        kw_only=False
-    )
-    """
     time_taken: int
     """Download time in seconds"""
+    file_parts: list[DownloadTracker] = field(
+        default_factory=list
+    )
 
     @property
     def threads_used(self) -> int:

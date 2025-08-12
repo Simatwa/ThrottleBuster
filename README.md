@@ -14,10 +14,6 @@
 <!-- TODO: Add logo & wakatime-->
 </div>
 
-
-
-# ThrottleBuster
-
 This is a Python library designed to accelerate file downloads by overcoming common throttling restrictions aiming to reduce download times for large files.
 
 Key Feature:
