@@ -210,4 +210,5 @@ test-*.py
 *.mkv
 *.opus
 *.part
+*.webm
 commit-msg*.txt
