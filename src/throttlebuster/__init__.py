@@ -1,6 +1,5 @@
 """"""
 
-import logging
 from importlib import metadata
 
 try:
@@ -11,12 +10,9 @@ except metadata.PackageNotFoundError:
 __author__ = "Smartwa"
 __repo__ = "https://github.com/Simatwa/throttlebuster"
 
-logger = logging.getLogger(__name__)
 
-from throttlebuster.core import ThrottleBuster  # noqa: E402
-from throttlebuster.models import DownloadTracker  # noqa: E402
+from throttlebuster.core import ThrottleBuster
+from throttlebuster.helpers import logger
+from throttlebuster.models import DownloadTracker
 
-__all__ = [
-    "ThrottleBuster",
-    "DownloadTracker",
-]
+__all__ = ["ThrottleBuster", "DownloadTracker", "logger"]

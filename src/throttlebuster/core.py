@@ -2,8 +2,10 @@
 
 import asyncio
 import os
+import time
 import warnings
 from pathlib import Path
+from urllib.parse import urlparse
 
 import httpx
 import tqdm
@@ -16,11 +18,8 @@ from throttlebuster.constants import (
     THREADS_LIMIT,
 )
 from throttlebuster.exceptions import FilenameNotFoundError, FilesizeNotFoundError
-from throttlebuster.helpers import (
-    DownloadUtils,
-    get_filesize_string,
-)
-from throttlebuster.models import DownloadTracker
+from throttlebuster.helpers import DownloadUtils, get_filesize_string, loop
+from throttlebuster.models import DownloadedFile, DownloadTracker
 
 warnings.simplefilter("ignore", category=(tqdm.std.TqdmWarning,))
 """Raised due to frac*"""
@@ -33,7 +32,7 @@ class ThrottleBuster(DownloadUtils):
     threads amount.
 
     This will only be useful when the throttling is done per `download
-    stream` and NOT `per IP address`.
+    stream` and NOT `per IP address` and server supports resuming download.
     """
 
     threads_limit: int = THREADS_LIMIT
@@ -52,9 +51,10 @@ class ThrottleBuster(DownloadUtils):
         """Constructor for `ThrottleBuster`
 
         Args:
-            dir (Path | str, optional): Directory for saving the downloaded file. Defaults to CURRENT_WORKING_DIR.
+            dir (Path | str, optional): Directory for saving the downloaded file to. Defaults to CURRENT_WORKING_DIR.
             chunk_size (int, optional): Streaming download chunk size in kilobytes. Defaults to 64.
             threads (int, optional): Number of threads to carry out the download. Defaults to 2.
+            part_dir (Path | str, optional): Directory for temporarily saving the downloaded file-parts to. Defaults to CURRENT_WORKING_DIR.
             part_extension (str, optional): Filename extension for download parts. Defaults to DOWNLOAD_PART_EXTENSION.
             request_headers (HeaderTypes, optional): Request headers. Defaults to DEFAULT_REQUEST_HEADERS.
 
@@ -80,12 +80,12 @@ class ThrottleBuster(DownloadUtils):
             rf'dir="{self.dir}", chunk_size_in_bytes={self.chunk_size}>'
         )
 
-    def generate_saved_to(self, filename: str, index: int = 0) -> Path:
+    def _generate_saved_to(self, filename: str, dir: Path, index: int | None = None) -> Path:
         filename, ext = os.path.splitext(filename)
         index = f".{index}" if index is not None else ""
         ext = "." + ext if ext else ""
 
-        return self.dir.joinpath(f"{filename}{index}{ext}")
+        return dir.joinpath(f"{filename}{index}{ext}")
 
     def _create_headers(self, bytes_offset: int) -> dict:
         new_headers = self.client.headers.copy()
@@ -114,13 +114,14 @@ class ThrottleBuster(DownloadUtils):
         """Combines the separated download parts into one.
 
         Args:
-            file_parts (list[DownloadTracker]): List of the separate tracks
+            file_parts (list[DownloadTracker]): List of the separate files.
             filename (Path): Filename for saving the merged parts under.
             clear_parts (bool, optional): Whether to delete the download parts. Defaults to True.
 
         Returns:
             Path: Filepath to the merged parts.
         """
+        filename = self.dir.joinpath(filename)
         ordered_parts: list[DownloadTracker] = []
         for part in file_parts:
             assert part.saved_to.exists(), f"Part not found in downloaded path {part}"
@@ -172,14 +173,15 @@ class ThrottleBuster(DownloadUtils):
         progress_hook: callable = None,
         disable_progress_bar: bool = None,
         file_size: int = None,
+        clear_parts: bool = True,
         colour: str = "cyan",
         simple: bool = False,
         test: bool = False,
         leave: bool = True,
         ascii: bool = False,
         **kwargs,
-    ) -> Path | httpx.Response:
-        """Controls the whole download process of a file.
+    ) -> DownloadedFile | httpx.Response:
+        """Initiate download process of a file.
 
         Args:
             url (str): Url of the file to be downloaded.
@@ -187,6 +189,7 @@ class ThrottleBuster(DownloadUtils):
             progress_hook (callable, optional): Function to call with the download progress information. Defaults to None.
             disable_progress_bar (bool, optional): Do not show progress_bar. Defaults to None (decide based on progress_hook).
             file_size (int, optional): Size of the file to be downloaded. Defaults to None.
+            clear_parts (bool, optional): Whether to delete the download parts. Defaults to True.
             leave (bool, optional): Keep all leaves of the progressbar. Defaults to True.
             colour (str, optional): Progress bar display color. Defaults to "cyan".
             simple (bool, optional): Show percentage and bar only in progressbar. Deafults to False.
@@ -196,7 +199,7 @@ class ThrottleBuster(DownloadUtils):
         kwargs: Other keyword arguments for `tqdm.tdqm`
 
         Returns:
-            Path | httpx.Response: Path where the media file has been saved to or httpx Response (test).
+            DownloadedFile | httpx.Response: Path where the media file has been saved to or httpx Response (test).
         """  # noqa: E501
 
         async_task_items = []
@@ -218,9 +221,12 @@ class ThrottleBuster(DownloadUtils):
             filename = filename or self.get_filename_from_header(stream.headers)
 
             if filename is None:
-                raise FilenameNotFoundError(
-                    "Unable to get filename. Pass filename value to suppress this error"
-                )
+                # Try to get from path
+                _, filename = os.path.split(urlparse(url).path)
+                if not filename:
+                    raise FilenameNotFoundError(
+                        "Unable to get filename. Pass filename value to suppress this error"
+                    )
 
             if content_length is None:
                 raise FilesizeNotFoundError(
@@ -229,7 +235,7 @@ class ThrottleBuster(DownloadUtils):
                 )
 
             size_with_unit = get_filesize_string(content_length)
-            filename_disp = filename if len(filename) < 8 else filename[:8] + "..."
+            filename_disp = filename if len(filename) <= 8 else filename[:8] + "..."
 
             p_bar = tqdm.tqdm(
                 total=self.bytes_to_mb(content_length),
@@ -251,7 +257,7 @@ class ThrottleBuster(DownloadUtils):
                 offset, load = offset_load
                 download_tracker = DownloadTracker(
                     url=url,
-                    saved_to=self.generate_saved_to(filename + self.part_extension, index),
+                    saved_to=self._generate_saved_to(filename + self.part_extension, self.part_dir, index),
                     index=index,
                     bytes_offset=offset,
                     expected_size=load,
@@ -267,5 +273,20 @@ class ThrottleBuster(DownloadUtils):
                 )
                 async_task_items.append(async_task)
 
+            download_start_time = time.time()
             file_parts = await asyncio.gather(*async_task_items)
-            return self._merge_parts(file_parts, filename=filename)
+            download_time = time.time() - download_start_time
+
+            saved_to = self._merge_parts(file_parts, filename=filename, clear_parts=clear_parts)
+
+            return DownloadedFile(
+                url=url,
+                saved_to=saved_to,
+                size=os.path.getsize(saved_to),
+                # file_parts=file_parts,
+                time_taken=download_time,
+            )
+
+    def run_sync(self, *args, **kwargs) -> DownloadedFile | httpx.Response:
+        """Synchronously initiate download process of a file."""
+        return loop.run_until_complete(self.run(*args, **kwargs))

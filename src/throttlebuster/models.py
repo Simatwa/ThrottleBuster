@@ -1,6 +1,6 @@
 """Dataclasses module"""
 
-from dataclasses import dataclass
+from dataclasses import Field, dataclass
 from pathlib import Path
 
 
@@ -33,3 +33,30 @@ class DownloadTracker:
         self.streaming_chunk_size = new_chunk_size
         self.downloaded_size += new_chunk_size
         return self.downloaded_size
+
+
+@dataclass(frozen=True)
+class DownloadedFile:
+    """Completed download file metadata"""
+
+    url: str
+    saved_to: Path
+    size: int
+    """
+    file_parts: DownloadTracker = Field(
+        [],
+        default_factory=list,
+        init=True,
+        repr=True,
+        hash=True,
+        compare=True,
+        metadata={},
+        kw_only=False
+    )
+    """
+    time_taken: int
+    """Download time in seconds"""
+
+    @property
+    def threads_used(self) -> int:
+        return len(self.file_parts)

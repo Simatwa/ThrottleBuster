@@ -1,5 +1,11 @@
 """Supportive functions"""
 
+import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
+loop = asyncio.get_event_loop()
+
 
 class DownloadUtils:
     @classmethod
@@ -28,7 +34,6 @@ class DownloadUtils:
         remainder = content_length % threads
         load = [base_size + (1 if i < remainder else 0) for i in range(threads)]
 
-        # Verify correctness
         assert sum(load) == content_length, "Chunk sizes don't add up to total length"
         assert len(load) == threads, "Wrong number of chunks generated"
 
