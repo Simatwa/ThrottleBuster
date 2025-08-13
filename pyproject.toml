@@ -10,6 +10,7 @@ authors = [
 requires-python = ">=3.10"
 
 dependencies = [
+    "aiofiles>=24.1.0",
     "httpx>=0.28.1",
     "tqdm>=4.67.1",
 ]
@@ -29,8 +30,8 @@ classifiers = [
 ]
 
 [project.scripts]
-throttlebuster = "moviebox_api.cli"
-tbust = "moviebox_api.cli"
+throttlebuster = "throttlebuster.cli:main"
+tbust = "throttlebuster.cli:main "
 
 [project.urls]
 homepage = "https://github.com/Simatwa/throttlebuster"
