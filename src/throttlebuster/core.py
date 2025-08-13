@@ -174,7 +174,7 @@ class ThrottleBuster(DownloadUtils):
                 if clear_parts:
                     os.remove(part.saved_to)
 
-        return filename
+        return save_to
 
     async def _downloader(
         self,

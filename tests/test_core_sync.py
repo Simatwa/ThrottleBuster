@@ -38,6 +38,8 @@ def test_different_threads_time():
     downloaded_file_items: list[DownloadedFile] = []
 
     for thread in range(1, 5):
+        # Ensure file size is big enough or throttling is small enough
+        # for time difference to be noticed
         throttlebuster = ThrottleBuster(dir=DOWNLOAD_DIR, part_dir=PART_DIR, threads=thread)
         downloaded_file = throttlebuster.run_sync(
             FILE_URL, download_mode=DownloadMode.START, disable_progress_bar=True
