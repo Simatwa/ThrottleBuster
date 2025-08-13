@@ -200,9 +200,7 @@ class ThrottleBuster(DownloadUtils):
             downloaded_size = os.path.getsize(download_tracker.saved_to)
             download_tracker.bytes_offset += downloaded_size
             download_tracker.update_downloaded_size(downloaded_size)
-            # progress_bar.update(downloaded_size)
-            # progress_bar.total -= downloaded_size
-            # TODO: Fix this so that progressbar is shown
+            progress_bar.total -= self.bytes_to_mb(downloaded_size)
 
         else:
             download_tracker.download_mode = DownloadMode.START
@@ -301,7 +299,7 @@ class ThrottleBuster(DownloadUtils):
                 _, filename = os.path.split(urlparse(url).path)
                 if not filename:
                     raise FilenameNotFoundError(
-                        "Unable to get filename. Pass filename value to suppress this error"
+                        "Unable to get filename. Pass value using parameter filename to suppress this error"
                     )
 
             filename = sanitize_filename(filename)
@@ -332,7 +330,7 @@ class ThrottleBuster(DownloadUtils):
 
             p_bar = tqdm.tqdm(
                 total=self.bytes_to_mb(content_length),
-                desc=f"Downloading{' ' if simple else f' [{filename_disp}]'}",
+                desc=f"Downloading{f' [{filename_disp}]'}",
                 unit="Mb",
                 disable=disable_progress_bar,
                 colour=colour,
@@ -350,7 +348,11 @@ class ThrottleBuster(DownloadUtils):
                 offset, load = offset_load
                 download_tracker = DownloadTracker(
                     url=url,
-                    saved_to=self._generate_saved_to(filename + self.part_extension, self.part_dir, index),
+                    saved_to=self._generate_saved_to(
+                        f"{filename}-{offset, load}{self.part_extension}",
+                        self.part_dir,
+                        index,
+                    ),
                     index=index,
                     bytes_offset=offset,
                     expected_size=load,
