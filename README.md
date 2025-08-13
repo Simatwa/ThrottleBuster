@@ -31,7 +31,7 @@ $ pip install "throttlebuster[cli]"
 
 ## Usage
 
-For testing purposes you can use this config example for [Nginx](htts://nginx.org) server.
+For testing purposes you can use this config example for [Nginx](https://nginx.org) server.
 
 ```conf
 # Test server
