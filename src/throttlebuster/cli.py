@@ -195,10 +195,80 @@ def download_command(
     throttlebuster.run_sync(**run_kwargs)
 
 
+@click.command(context_settings=command_context_settings)
+@click.argument("throttle", type=click.INT)
+@click.option(
+    "-U",
+    "--url",
+    help="Url to the target file",
+)
+@click.option("-S", "--size", type=click.INT, help="Size in bytes of the targeted file")
+@click.option(
+    "-T",
+    "--threads",
+    help="Threads amount to base the estimate on : Range (2-30)",
+    type=click.IntRange(1, THREADS_LIMIT),
+)
+@click.option("-j", "--json", is_flag=True, help="Stdout estimates in json format")
+def estimate_command(throttle: int, url: str | None, size: int, threads: int, json: bool):
+    """Estimate download duration for different threads"""
+    assert size or url, "Either size of the file (--size) or url to it (--url) is required."
+
+    import rich
+
+    from throttlebuster.helpers import get_duration_string, get_filesize_string
+
+    if size:
+        size_in_bytes = size
+
+    elif url:
+        from throttlebuster import ThrottleBuster
+
+        throttle_buster = ThrottleBuster()
+        response = throttle_buster.run_sync(url, test=True)
+        size_in_bytes = int(response.headers.get("content-length"))
+
+    estimates: list[tuple[str, int]] = []
+
+    def update_estimates(thread: int):
+        load_per_thread = size_in_bytes / thread
+        download_duration = load_per_thread / throttle
+        download_duration_string = get_duration_string(download_duration)
+        load_per_thread_string = get_filesize_string(load_per_thread)
+        estimates.append((str(thread), download_duration_string, load_per_thread_string))
+
+    if threads is None:
+        for thread in range(2, 21):
+            update_estimates(thread)
+        estimates.reverse()
+
+    else:
+        update_estimates(threads)
+
+    if json:
+        rich.print_json(data=dict(estimates=estimates), indent=4)
+
+    else:
+        from rich.table import Table
+
+        table = Table(
+            "Threads",
+            "Duration",
+            "Load per thread",
+            title=(f"{get_filesize_string(size_in_bytes)} at {get_filesize_string(throttle)}/s"),
+            show_lines=False,
+        )
+        for row in estimates:
+            table.add_row(*row)
+
+        rich.print(table)
+
+
 def main():
     """Entry point"""
     try:
         throttlebuster.add_command(download_command, "download")
+        throttlebuster.add_command(estimate_command, "estimate")
         sys.exit(throttlebuster())
 
     except Exception as e:

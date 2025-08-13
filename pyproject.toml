@@ -30,6 +30,7 @@ classifiers = [
 
 [project.scripts]
 throttlebuster = "moviebox_api.cli"
+tbust = "moviebox_api.cli"
 
 [project.urls]
 homepage = "https://github.com/Simatwa/throttlebuster"
