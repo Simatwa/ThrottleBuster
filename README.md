@@ -14,7 +14,7 @@
 <!-- TODO: Add logo & wakatime-->
 </div>
 
-This is a Python library designed to accelerate file downloads by overcoming common throttling restrictions aiming to reduce download duration for large files.
+ThrottleBuster is a Python library designed to accelerate file downloads by overcoming common throttling restrictions. It leverages multi-threading and asynchronous techniques to optimize download speeds, making it ideal for downloading large files.
 
 ## Features
 
@@ -31,12 +31,11 @@ $ pip install "throttlebuster[cli]"
 
 ## Usage
 
-For testing purposes you can use this config example for [Nginx](https://nginx.org) server.
+For testing purposes, you can use this config example for [Nginx](https://nginx.org) server.
 
 ```conf
 # Test server
 
-# Nginx config file
 # Copy it to /etc/sites-enabled or add it to default nginx.conf file
 
 server {
@@ -291,7 +290,7 @@ Options:
 
 Throttle unit is **bytes**.
 
-## [Motive](#features)
+## [Motive](https://github.com/Simatwa/moviebox-api/issues/29#issue-3297158834)
 
 <div align="center">
 
