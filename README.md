@@ -141,7 +141,7 @@ $ python -m throttlebuster --help
 ```
 </summary>
 
-```sh
+```
 Usage: python -m throttlebuster [OPTIONS] COMMAND [ARGS]...
 
   Accelerate file downloads by overcoming common throttling restrictions
@@ -234,7 +234,7 @@ $ python -m throttlebuster estimate --url http://localhost:8888/miel-martin.webm
 ```
 </summary>
 
-```sh
+```
          337.88 MB at 260.00 KB/s         
 ┏━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┓
 ┃ Threads ┃ Duration   ┃ Load per thread ┃
@@ -273,7 +273,7 @@ $ python -m throttlebuster estimate --help
 ```
 </summary>
 
-```sh
+```
 Usage: python -m throttlebuster estimate [OPTIONS] THROTTLE
 
   Estimate download duration for different threads
