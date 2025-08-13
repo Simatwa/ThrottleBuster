@@ -31,6 +31,27 @@ $ pip install "throttlebuster[cli]"
 
 ## Usage
 
+For testing purposes you can use this config example for [Nginx](htts://nginx.org) server.
+
+```conf
+# Test server
+
+# Nginx config file
+# Copy it to /etc/sites-enabled or add it to default nginx.conf file
+
+server {
+    listen 8888;
+    server_name throttlebuster.test;
+
+    location / {
+        limit_rate 500k;  # Limit rate to 500 KB/s
+        root /home/smartwa/y2mate;  # Set your own directory
+        index index.html;
+    }
+}
+
+```
+
 <details open>
 
 <summary>
@@ -58,7 +79,7 @@ if __name__ == "__main__":
 
 ```
 
-Perform download with custom progress hook
+#### Custom progress hook
 
 ```python
 from throttlebuster import DownloadTracker, ThrottleBuster

@@ -228,7 +228,7 @@ def estimate_command(throttle: int, url: str | None, size: int, threads: int, js
         response = throttle_buster.run_sync(url, test=True)
         size_in_bytes = int(response.headers.get("content-length"))
 
-    estimates: list[tuple[str, int]] = []
+    estimates: list[tuple[str]] = []
 
     def update_estimates(thread: int):
         load_per_thread = size_in_bytes / thread
