@@ -28,5 +28,5 @@ class DownloadMode(StrEnum):
     AUTO = "auto"
 
     @classmethod
-    def map(cls):
+    def map(cls) -> dict:
         return {"start": cls.START, "resume": cls.RESUME, "auto": cls.AUTO}

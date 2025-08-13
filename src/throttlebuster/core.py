@@ -73,7 +73,7 @@ class ThrottleBuster(DownloadUtils):
             threads (int, optional): Number of threads to carry out the download. Defaults to 2.
             part_dir (Path | str, optional): Directory for temporarily saving the downloaded file-parts to. Defaults to CURRENT_WORKING_DIR.
             part_extension (str, optional): Filename extension for download parts. Defaults to DOWNLOAD_PART_EXTENSION.
-            request_headers (HeaderTypes, optional): Request headers. Defaults to DEFAULT_REQUEST_HEADERS.
+            request_headers (HeaderTypes, optional): Httpx request headers. Defaults to DEFAULT_REQUEST_HEADERS.
             merge_buffer_size (int|None, optional). Buffer size for merging the separated files in kilobytes. Defaults to chunk_size.
 
         kwargs : Keyword arguments for `httpx.AsyncClient`
@@ -128,14 +128,14 @@ class ThrottleBuster(DownloadUtils):
         self,
         file_parts: list[DownloadTracker],
         filename: Path,
-        clear_parts: bool = True,
+        keep_parts: bool = False,
     ) -> Path:
         """Combines the separated download parts into one.
 
         Args:
             file_parts (list[DownloadTracker]): List of the separate files.
             filename (Path): Filename for saving the merged parts under.
-            clear_parts (bool, optional): Whether to delete the download parts. Defaults to True.
+            clear_parts (bool, optional): Whether to keep the download parts. Defaults to False.
 
         Returns:
             Path: Filepath to the merged parts.
@@ -171,7 +171,7 @@ class ThrottleBuster(DownloadUtils):
                         await fh.write(chunk)
                         saved_size += len(chunk)
 
-                if clear_parts:
+                if not keep_parts:
                     os.remove(part.saved_to)
 
         return save_to
@@ -242,7 +242,7 @@ class ThrottleBuster(DownloadUtils):
         download_mode: DownloadMode = DownloadMode.AUTO,
         disable_progress_bar: bool = None,
         file_size: int = None,
-        clear_parts: bool = True,
+        keep_parts: bool = False,
         colour: str = "cyan",
         simple: bool = False,
         test: bool = False,
@@ -256,10 +256,10 @@ class ThrottleBuster(DownloadUtils):
             url (str): Url of the file to be downloaded.
             filename (str, optional): Filename for the downloaded content. Defaults to None.
             progress_hook (callable, optional): Function to call with the download progress information. Defaults to None.
-            download_mode (DownloadMode, optional): Whether to start or resume incomplete . Defaults DownloadMode.AUTO.
+            download_mode (DownloadMode, optional): Whether to start or resume incomplete download. Defaults DownloadMode.AUTO.
             disable_progress_bar (bool, optional): Do not show progress_bar. Defaults to None (decide based on progress_hook).
             file_size (int, optional): Size of the file to be downloaded. Defaults to None.
-            clear_parts (bool, optional): Whether to delete the download parts. Defaults to True.
+            keep_parts (bool, optional): Whether to retain the separate download parts. Defaults to False.
             leave (bool, optional): Keep all leaves of the progressbar. Defaults to True.
             colour (str, optional): Progress bar display color. Defaults to "cyan".
             simple (bool, optional): Show percentage and bar only in progressbar. Deafults to False.
@@ -284,9 +284,6 @@ class ThrottleBuster(DownloadUtils):
 
         async with self.client.stream("GET", url=url) as stream:
             stream.raise_for_status()
-
-            if test:
-                return stream
 
             content_length = stream.headers.get("content-length", file_size)
             if type(content_length) is str:
@@ -327,6 +324,10 @@ class ThrottleBuster(DownloadUtils):
 
             size_with_unit = get_filesize_string(content_length)
             filename_disp = filename if len(filename) <= 8 + 3 else filename[:8] + "..."
+
+            if test:
+                logger.info(f"Download test passed successfully ({size_with_unit}) - {final_saved_to}")
+                return stream
 
             p_bar = tqdm.tqdm(
                 total=self.bytes_to_mb(content_length),
@@ -374,7 +375,7 @@ class ThrottleBuster(DownloadUtils):
             download_duration = time.time() - download_start_time
 
             merge_start_time = time.time()
-            saved_to = await self._merge_parts(file_parts, filename=filename, clear_parts=clear_parts)
+            saved_to = await self._merge_parts(file_parts, filename=filename, keep_parts=keep_parts)
 
             downloaded_file = DownloadedFile(
                 url=url,

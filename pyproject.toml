@@ -28,23 +28,30 @@ classifiers = [
     "Topic :: Utilities",
 ]
 
-[project.optional-dependencies]
-cli = [
-    "click>=8.2.1",
-    "rich>=14.1.0",
-]
-
 [project.scripts]
-throttlebuster = "throttlebuster:main"
+throttlebuster = "moviebox_api.cli"
 
 [project.urls]
 homepage = "https://github.com/Simatwa/throttlebuster"
 repository = "https://github.com/Simatwa/throttlebuster"
 documentation = "https://github.com/Simatwa/throttlebuster"
 
+[project.optional-dependencies]
+cli = [
+    "click>=8.2.1",
+    "rich>=14.1.0",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.0.0",
+    "ruff>=0.12.8",
+]
 
 [tool.ruff]
 line-length = 110
