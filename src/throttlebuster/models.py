@@ -48,6 +48,7 @@ class DownloadedFile:
     size: int
     duration: int
     """Download time in seconds"""
+    merge_duration: int
     file_parts: list[DownloadTracker] = field(default_factory=list)
 
     @property

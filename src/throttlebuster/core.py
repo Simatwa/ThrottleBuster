@@ -8,6 +8,7 @@ import warnings
 from pathlib import Path
 from urllib.parse import urlparse
 
+import aiofiles
 import httpx
 import tqdm
 from httpx._types import HeaderTypes
@@ -61,6 +62,7 @@ class ThrottleBuster(DownloadUtils):
         part_dir: Path | str = CURRENT_WORKING_DIR,
         part_extension: str = DOWNLOAD_PART_EXTENSION,
         request_headers: HeaderTypes = DEFAULT_REQUEST_HEADERS,
+        merge_buffer_size: int | None = None,
         **kwargs,
     ):
         """Constructor for `ThrottleBuster`
@@ -72,6 +74,7 @@ class ThrottleBuster(DownloadUtils):
             part_dir (Path | str, optional): Directory for temporarily saving the downloaded file-parts to. Defaults to CURRENT_WORKING_DIR.
             part_extension (str, optional): Filename extension for download parts. Defaults to DOWNLOAD_PART_EXTENSION.
             request_headers (HeaderTypes, optional): Request headers. Defaults to DEFAULT_REQUEST_HEADERS.
+            merge_buffer_size (int|None, optional). Buffer size for merging the separated files in kilobytes. Defaults to chunk_size.
 
         kwargs : Keyword arguments for `httpx.AsyncClient`
         """  # noqa: E501
@@ -80,12 +83,13 @@ class ThrottleBuster(DownloadUtils):
             f"Value for threads should be atleast 1 and at most {self.threads_limit}"
         )
 
-        self.chunk_size = chunk_size * 1_024
-        self.threads = int(threads)
-        self.dir = Path(dir)
+        self.chunk_size: int = chunk_size * 1_024
+        self.threads: int = int(threads)
+        self.dir: Path = Path(dir)
         self.part_dir = Path(part_dir)
-        self.part_extension = part_extension
-        self.client = httpx.AsyncClient(**kwargs)
+        self.part_extension: str = part_extension
+        self.merge_buffer_size: int = (chunk_size if merge_buffer_size is None else merge_buffer_size) * 1_024
+        self.client: httpx.AsyncClient = httpx.AsyncClient(**kwargs)
         """httpx AsyncClient"""
         self.client.headers.update(request_headers)
 
@@ -120,7 +124,7 @@ class ThrottleBuster(DownloadUtils):
             # NOTE: Consider using status code to determine whether to proceed
             # with download process or not
 
-    def _merge_parts(
+    async def _merge_parts(
         self,
         file_parts: list[DownloadTracker],
         filename: Path,
@@ -151,20 +155,20 @@ class ThrottleBuster(DownloadUtils):
 
         logger.info(f'Merging {len(file_parts)} file part{"s" if len(file_parts) > 1 else ""} to "{save_to}"')
 
-        with open(
+        async with aiofiles.open(
             save_to,
             "wb",
         ) as fh:
             for part in ordered_parts:
-                with open(part.saved_to, "rb") as part_fh:
+                async with aiofiles.open(part.saved_to, "rb") as part_fh:
                     saved_size = 0
-                    read_size = self.chunk_size
+                    read_size = self.merge_buffer_size
 
                     while saved_size < part.expected_size:
-                        chunk = part_fh.read(min(read_size, part.expected_size - saved_size))
+                        chunk = await part_fh.read(min(read_size, part.expected_size - saved_size))
                         if not chunk:
                             break
-                        fh.write(chunk)
+                        await fh.write(chunk)
                         saved_size += len(chunk)
 
                 if clear_parts:
@@ -217,9 +221,9 @@ class ThrottleBuster(DownloadUtils):
         ) as stream:
             stream.raise_for_status()
 
-            with open(download_tracker.saved_to, write_mode) as fh:
+            async with aiofiles.open(download_tracker.saved_to, write_mode) as fh:
                 async for chunk in stream.aiter_bytes(self.chunk_size):
-                    fh.write(chunk)
+                    await fh.write(chunk)
 
                     download_tracker.update_downloaded_size(len(chunk))
 
@@ -267,7 +271,7 @@ class ThrottleBuster(DownloadUtils):
         kwargs: Other keyword arguments for `tqdm.tdqm`
 
         Returns:
-            DownloadedFile | httpx.Response: Path where the media file has been saved to or httpx Response (test).
+            DownloadedFile | httpx.Response: Path where the downloaded file has been saved to or httpx Response (test).
         """  # noqa: E501
 
         assert_instance(download_mode, DownloadMode)
@@ -319,6 +323,7 @@ class ThrottleBuster(DownloadUtils):
                         size=os.path.getsize(final_saved_to),
                         duration=0,
                         file_parts=[],
+                        merge_duration=0,
                         expected_size=content_length,
                     )
 
@@ -366,7 +371,8 @@ class ThrottleBuster(DownloadUtils):
             file_parts = await asyncio.gather(*async_task_items)
             download_duration = time.time() - download_start_time
 
-            saved_to = self._merge_parts(file_parts, filename=filename, clear_parts=clear_parts)
+            merge_start_time = time.time()
+            saved_to = await self._merge_parts(file_parts, filename=filename, clear_parts=clear_parts)
 
             downloaded_file = DownloadedFile(
                 url=url,
@@ -374,6 +380,7 @@ class ThrottleBuster(DownloadUtils):
                 expected_size=content_length,
                 size=os.path.getsize(saved_to),
                 file_parts=file_parts,
+                merge_duration=time.time() - merge_start_time,
                 duration=download_duration,
             )
 

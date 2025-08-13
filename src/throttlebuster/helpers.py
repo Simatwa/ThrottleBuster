@@ -14,7 +14,7 @@ loop = asyncio.new_event_loop()
 class DownloadUtils:
     @classmethod
     def bytes_to_mb(self, bytes: int) -> int:
-        return abs(bytes / 1_000_000)
+        return round(bytes / 1_000_000, 6)
 
     @classmethod
     def get_offset_load(cls, content_length: int, threads: int) -> list[tuple[int, int]]:
