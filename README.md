@@ -153,7 +153,6 @@ Options:
 Commands:
   download  Download file using http protocol
   estimate  Estimate download duration for different threads
-
 ```
 
 </details>
@@ -171,48 +170,51 @@ $ python -m throttlebuster download http://localhost:8888/test.1.opus --threads 
 ```sh
 $ python -m throttlebuster download --help
 ```
+
 </summary>
 
-```sh
-Usage: python -m throttlebuster download [OPTIONS] URL
+```
+Usage: tbust download [OPTIONS] URL
 
   Download file using http protocol
 
 Options:
   -T, --threads INTEGER RANGE     Number of threads to carry out the download
-                                  : 2  [1<=x<=1000]
-  -C, --chunk-size INTEGER        Streaming download chunk size in kilobytes :
-                                  256
+                                  [default: 2; 1<=x<=1000]
+  -Z, --chunk-size INTEGER        Streaming download chunk size in kilobytes
+                                  [default: 256]
   -D, --dir DIRECTORY             Directory for saving the downloaded file to
-                                  : PWD
+                                  [default:
+                                  /home/...]
   -P, --part-dir DIRECTORY        Directory for temporarily saving the
-                                  downloaded file-parts to : PWD
-  -E, --part-extension TEXT       Filename extension for download parts :
-                                  .part
-  -H, --request-headers TEXT...   Httpx request headers : default
+                                  downloaded file-parts to  [default:
+                                  /home/...]
+  -E, --part-extension TEXT       Filename extension for download parts
+                                  [default: .part]
+  -H, --request-headers TEXT...   Httpx request header - [key value] : default
+  -C, --request-cookies TEXT...   Httpx request cookie - [key value]: default
   -B, --merge-buffer-size INTEGER RANGE
                                   Buffer size for merging the separated files
-                                  in kilobytes : 256  [1<=x<=102400]
+                                  in kilobytes  [default: 256; 1<=x<=102400]
   -F, --filename TEXT             Filename for the downloaded content
-  -M, --download-mode [start|resume|auto]
-                                  Whether to start or resume incomplete
-                                  download : auto
-  -L, --file_size INTEGER         Size of the file to be downloaded : None
-  -K, --colour TEXT               Progress bar display color : cyan
+  -M, --mode [start|resume|auto]  Whether to start or resume incomplete
+                                  download  [default: auto]
+  -L, --file-size INTEGER         Size of the file to be downloaded
+  -K, --colour TEXT               Progress bar display color  [default: cyan]
   -k, --keep-parts                Whether to retain the separate download
-                                  parts : False
+                                  parts
   -s, --simple                    Show percentage and bar only in progressbar
-                                  : False
   -t, --test                      Just test if download is possible but do not
-                                  actually download : False
+                                  actually download
   -a, --ascii                     Use unicode (smooth blocks) to fill the
-                                  progress-bar meter : False
-  -l, --no-leave                  Do not keep all leaves of the progressbar :
-                                  False
-  -z, --disable-progress-bar      Do not show progress_bar : False
-  -q, --quiet                     Do not show any interactive information :
-                                  False
-  -v, --verbose                   Show more detailed information : 0
+                                  progress-bar meter
+  -l, --no-leave                  Do not keep all leaves of the progressbar
+  -z, --disable-progress-bar      Do not show progress_bar
+  -i, --suppress-incompatible-error
+                                  Do no raise error when response headers lack
+                                  Etag
+  -q, --quiet                     Do not show any interactive information
+  -v, --verbose                   Show more detailed information  [default: 0]
   --help                          Show this message and exit.
 ```
 
@@ -231,6 +233,7 @@ Options:
 $ python -m throttlebuster estimate --url http://localhost:8888/miel-martin.webm 260000
 
 ```
+
 </summary>
 
 ```
@@ -270,6 +273,7 @@ $ python -m throttlebuster estimate --url http://localhost:8888/miel-martin.webm
 ```sh
 $ python -m throttlebuster estimate --help
 ```
+
 </summary>
 
 ```

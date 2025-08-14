@@ -307,7 +307,7 @@ class ThrottleBuster(DownloadUtils):
                     "Server response header lacks Etag value which means "
                     "it doesn't support resuming downloads. "
                     "Set threads to 1 or activate suppress_incompatible_error parameter "
-                    "to suppress this error."
+                    "to silence this error."
                 )
 
             content_length = stream.headers.get("content-length", file_size)
@@ -331,7 +331,7 @@ class ThrottleBuster(DownloadUtils):
             if content_length is None:
                 raise FilesizeNotFoundError(
                     "Unable to get the content-length of the file from server response. "
-                    "Set the content-length using parameter file_size to suppress this error."
+                    "Set the content-length using parameter file_size to suppres this error."
                 )
 
             elif not test and final_saved_to.exists() and mode is not DownloadMode.START:
@@ -397,7 +397,7 @@ class ThrottleBuster(DownloadUtils):
 
             download_start_time = time.time()
 
-            logger.info(f"Starting download process (threads - {self.threads})")
+            logger.info(f"Starting download process (threads - {self.threads}) - {filename}")
 
             file_parts = await asyncio.gather(*async_task_items)
             download_duration = time.time() - download_start_time

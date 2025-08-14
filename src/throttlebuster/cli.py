@@ -174,6 +174,12 @@ def throttlebuster():
     help="Do not show progress_bar",
 )
 @click.option(
+    "-i",
+    "--suppress-incompatible-error",
+    help="Do no raise error when response headers lack Etag",
+    is_flag=True,
+)
+@click.option(
     "-q",
     "--quiet",
     is_flag=True,
