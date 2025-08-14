@@ -15,9 +15,11 @@ from httpx._types import HeaderTypes
 
 from throttlebuster.constants import (
     CURRENT_WORKING_DIR,
+    DEFAULT_CHUNK_SIZE,
     DEFAULT_REQUEST_HEADERS,
+    DEFAULT_THREADS,
+    DEFAULT_THREADS_LIMIT,
     DOWNLOAD_PART_EXTENSION,
-    THREADS_LIMIT,
     DownloadMode,
 )
 from throttlebuster.exceptions import (
@@ -55,14 +57,14 @@ class ThrottleBuster(DownloadUtils):
     than improvement
     """
 
-    threads_limit: int = THREADS_LIMIT
+    threads_limit: int = DEFAULT_THREADS_LIMIT
     """Number of threads not to exceed"""
 
     def __init__(
         self,
         dir: Path | str = CURRENT_WORKING_DIR,
-        chunk_size: int = 256,
-        threads: int = 2,
+        chunk_size: int = DEFAULT_CHUNK_SIZE,
+        threads: int = DEFAULT_THREADS,
         part_dir: Path | str = CURRENT_WORKING_DIR,
         part_extension: str = DOWNLOAD_PART_EXTENSION,
         request_headers: HeaderTypes = DEFAULT_REQUEST_HEADERS,
@@ -72,10 +74,10 @@ class ThrottleBuster(DownloadUtils):
         """Constructor for `ThrottleBuster`
 
         Args:
-            dir (Path | str, optional): Directory for saving the downloaded file to. Defaults to CURRENT_WORKING_DIR.
-            chunk_size (int, optional): Streaming download chunk size in kilobytes. Defaults to 256.
-            threads (int, optional): Number of threads to carry out the download. Defaults to 2.
-            part_dir (Path | str, optional): Directory for temporarily saving the downloaded file-parts to. Defaults to CURRENT_WORKING_DIR.
+            dir (Path | str, optional): Directory for saving downloaded files to. Defaults to CURRENT_WORKING_DIR.
+            chunk_size (int, optional): Streaming download chunk size in kilobytes. Defaults to DEFAULT_CHUNK_SIZE.
+            threads (int, optional): Number of threads to carry out the download. Defaults to DEFAULT_THREADS.
+            part_dir (Path | str, optional): Directory for temporarily saving downloaded file-parts to. Defaults to CURRENT_WORKING_DIR.
             part_extension (str, optional): Filename extension for download parts. Defaults to DOWNLOAD_PART_EXTENSION.
             request_headers (HeaderTypes, optional): Httpx request headers. Defaults to DEFAULT_REQUEST_HEADERS.
             merge_buffer_size (int|None, optional). Buffer size for merging the separated files in kilobytes. Defaults to chunk_size.

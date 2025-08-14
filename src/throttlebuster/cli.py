@@ -9,8 +9,9 @@ import click
 
 from throttlebuster.constants import (
     CURRENT_WORKING_DIR,
+    DEFAULT_THREADS,
+    DEFAULT_THREADS_LIMIT,
     DOWNLOAD_PART_EXTENSION,
-    THREADS_LIMIT,
     DownloadMode,
 )
 
@@ -61,9 +62,9 @@ def throttlebuster():
 @click.option(
     "-T",
     "--threads",
-    type=click.IntRange(1, THREADS_LIMIT),
+    type=click.IntRange(1, DEFAULT_THREADS_LIMIT),
     help="Number of threads to carry out the download",
-    default=2,
+    default=DEFAULT_THREADS,
     show_default=True,
 )
 @click.option(
@@ -236,7 +237,7 @@ def download_command(
     "-T",
     "--threads",
     help="Threads amount to base the estimate on : Range (2-30)",
-    type=click.IntRange(1, THREADS_LIMIT),
+    type=click.IntRange(1, DEFAULT_THREADS_LIMIT),
 )
 @click.option("-j", "--json", is_flag=True, help="Stdout estimates in json format")
 def estimate_command(throttle: int, url: str | None, size: int, threads: int, json: bool):
