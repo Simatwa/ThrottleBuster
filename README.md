@@ -36,7 +36,7 @@ For testing purposes, you can use this config example for [Nginx](https://nginx.
 ```conf
 # Test server
 
-# Copy it to /etc/sites-enabled or add it to default nginx.conf file
+# Create a file to /etc/nginx/sites-enabled directory or add it to default nginx.conf file
 
 server {
     listen 8888;
