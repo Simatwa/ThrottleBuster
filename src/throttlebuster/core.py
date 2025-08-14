@@ -293,7 +293,7 @@ class ThrottleBuster(DownloadUtils):
         if disable_progress_bar is None:
             disable_progress_bar = progress_hook is not None
 
-        logger.info(f'Initializing download (threads - {self.threads}) for file in url - "{url}"')
+        logger.debug(f'Initializing download (threads - {self.threads}) for file in url - "{url}"')
 
         async with self.client.stream("GET", url=url) as stream:
             stream.raise_for_status()
@@ -396,6 +396,9 @@ class ThrottleBuster(DownloadUtils):
                 async_task_items.append(async_task)
 
             download_start_time = time.time()
+
+            logger.info(f"Starting download process (threads - {self.threads})")
+
             file_parts = await asyncio.gather(*async_task_items)
             download_duration = time.time() - download_start_time
 
