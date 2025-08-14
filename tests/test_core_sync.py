@@ -26,9 +26,7 @@ def test_real_download(threads_amount: int):
         part_dir=PART_DIR,
         threads=threads_amount,
     )
-    downloaded_file = throttlebuster.run_sync(
-        FILE_URL, download_mode=DownloadMode.START, disable_progress_bar=True
-    )
+    downloaded_file = throttlebuster.run_sync(FILE_URL, mode=DownloadMode.START, disable_progress_bar=True)
     assert downloaded_file.saved_to.exists()
     assert downloaded_file.threads_used == threads_amount
     assert downloaded_file.is_complete
@@ -42,7 +40,7 @@ def test_different_threads_time():
         # for time difference to be noticed
         throttlebuster = ThrottleBuster(dir=DOWNLOAD_DIR, part_dir=PART_DIR, threads=thread)
         downloaded_file = throttlebuster.run_sync(
-            FILE_URL, download_mode=DownloadMode.START, disable_progress_bar=True
+            FILE_URL, mode=DownloadMode.START, disable_progress_bar=True
         )
         assert downloaded_file.is_complete
 

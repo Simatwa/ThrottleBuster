@@ -14,3 +14,7 @@ class FilenameNotFoundError(ThrottleBusterException):
 class FilesizeNotFoundError(ThrottleBusterException):
     """Raised when server response.headers does not contain `content-length`
     and user has not declared the value for filename."""
+
+
+class IncompatibleServerError(ThrottleBusterException):
+    """Raised when server response lacks Etag in the headers"""

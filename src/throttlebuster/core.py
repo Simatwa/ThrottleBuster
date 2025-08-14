@@ -20,7 +20,11 @@ from throttlebuster.constants import (
     THREADS_LIMIT,
     DownloadMode,
 )
-from throttlebuster.exceptions import FilenameNotFoundError, FilesizeNotFoundError
+from throttlebuster.exceptions import (
+    FilenameNotFoundError,
+    FilesizeNotFoundError,
+    IncompatibleServerError,
+)
 from throttlebuster.helpers import (
     DownloadUtils,
     assert_instance,
@@ -79,18 +83,16 @@ class ThrottleBuster(DownloadUtils):
         kwargs : Keyword arguments for `httpx.AsyncClient`
         """  # noqa: E501
         # TODO: add temp-dir
-        assert (
-            threads > 0 and threads <= self.threads_limit
-        ), f"Value for threads should be atleast 1 and at most {self.threads_limit}"
+        assert threads > 0 and threads <= self.threads_limit, (
+            f"Value for threads should be atleast 1 and at most {self.threads_limit}"
+        )
 
         self.chunk_size: int = chunk_size * 1_024
         self.threads: int = int(threads)
         self.dir: Path = Path(dir)
         self.part_dir = Path(part_dir)
         self.part_extension: str = part_extension
-        self.merge_buffer_size: int = (
-            chunk_size if merge_buffer_size is None else merge_buffer_size
-        ) * 1_024
+        self.merge_buffer_size: int = (chunk_size if merge_buffer_size is None else merge_buffer_size) * 1_024
         self.client: httpx.AsyncClient = httpx.AsyncClient(**kwargs)
         """httpx AsyncClient"""
         self.client.headers.update(request_headers)
@@ -101,9 +103,7 @@ class ThrottleBuster(DownloadUtils):
             rf'dir="{self.dir}", chunk_size_in_bytes={self.chunk_size}>'
         )
 
-    def _generate_saved_to(
-        self, filename: str, dir: Path, index: int | None = None
-    ) -> Path:
+    def _generate_saved_to(self, filename: str, dir: Path, index: int | None = None) -> Path:
         filename, ext = os.path.splitext(filename)
         index = f".{index}" if index is not None else ""
         ext = ext if ext else ""
@@ -115,9 +115,7 @@ class ThrottleBuster(DownloadUtils):
         new_headers["Range"] = f"bytes={bytes_offset}-"
         return new_headers
 
-    async def _call_progress_hook(
-        self, progress_hook: callable, download_tracker: DownloadTracker
-    ) -> None:
+    async def _call_progress_hook(self, progress_hook: callable, download_tracker: DownloadTracker) -> None:
         """Interacts with progress hook"""
         if progress_hook is None:
             return
@@ -159,9 +157,7 @@ class ThrottleBuster(DownloadUtils):
             logger.info(f'Moving downloaded part to "{save_to}"')
             return Path(shutil.move(file_parts[0].saved_to, save_to))
 
-        logger.info(
-            f'Merging {len(file_parts)} file part{"s" if len(file_parts) > 1 else ""} to "{save_to}"'
-        )
+        logger.info(f'Merging {len(file_parts)} file part{"s" if len(file_parts) > 1 else ""} to "{save_to}"')
 
         async with aiofiles.open(
             save_to,
@@ -173,9 +169,7 @@ class ThrottleBuster(DownloadUtils):
                     read_size = self.merge_buffer_size
 
                     while saved_size < part.expected_size:
-                        chunk = await part_fh.read(
-                            min(read_size, part.expected_size - saved_size)
-                        )
+                        chunk = await part_fh.read(min(read_size, part.expected_size - saved_size))
                         if not chunk:
                             break
                         await fh.write(chunk)
@@ -235,9 +229,7 @@ class ThrottleBuster(DownloadUtils):
 
                     download_tracker.update_downloaded_size(len(chunk))
 
-                    progress_bar.update(
-                        self.bytes_to_mb(download_tracker.streaming_chunk_size)
-                    )
+                    progress_bar.update(self.bytes_to_mb(download_tracker.streaming_chunk_size))
                     await self._call_progress_hook(progress_hook, download_tracker)
 
                     if download_tracker.is_complete:
@@ -251,10 +243,11 @@ class ThrottleBuster(DownloadUtils):
         url: str,
         filename: str = None,
         progress_hook: callable = None,
-        download_mode: DownloadMode = DownloadMode.AUTO,
+        mode: DownloadMode = DownloadMode.AUTO,
         disable_progress_bar: bool = None,
         file_size: int = None,
         keep_parts: bool = False,
+        suppress_incompatible_error: bool = False,
         colour: str = "cyan",
         simple: bool = False,
         test: bool = False,
@@ -268,10 +261,11 @@ class ThrottleBuster(DownloadUtils):
             url (str): Url of the file to be downloaded.
             filename (str, optional): Filename for the downloaded content. Defaults to None.
             progress_hook (callable, optional): Function to call with the download progress information. Defaults to None.
-            download_mode (DownloadMode, optional): Whether to start or resume incomplete download. Defaults DownloadMode.AUTO.
+            mode (DownloadMode, optional): Whether to start or resume incomplete download. Defaults DownloadMode.AUTO.
             disable_progress_bar (bool, optional): Do not show progress_bar. Defaults to None (decide based on progress_hook).
             file_size (int, optional): Size of the file to be downloaded. Defaults to None.
             keep_parts (bool, optional): Whether to retain the separate download parts. Defaults to False.
+            suppress_incompatible_error (bool, optional): Do no raise error when response headers lack Etag. Defaults to False.
             leave (bool, optional): Keep all leaves of the progressbar. Defaults to True.
             colour (str, optional): Progress bar display color. Defaults to "cyan".
             simple (bool, optional): Show percentage and bar only in progressbar. Deafults to False.
@@ -281,15 +275,15 @@ class ThrottleBuster(DownloadUtils):
         kwargs: Other keyword arguments for `tqdm.tdqm`
 
         Returns:
-            DownloadedFile | httpx.Response: Path where the downloaded file has been saved to or httpx Response (test).
+            DownloadedFile | httpx.Response: Downloaded file details or httpx Response incase of (test=True).
         """  # noqa: E501
 
-        assert_instance(download_mode, DownloadMode)
+        assert_instance(mode, DownloadMode)
 
         if progress_hook is not None:
-            assert callable(
-                progress_hook
-            ), f"Value for progress_hook must be a function not {type(progress_hook)}"
+            assert callable(progress_hook), (
+                f"Value for progress_hook must be a function not {type(progress_hook)}"
+            )
 
         async_task_items = []
         download_tracker_items = []
@@ -297,12 +291,22 @@ class ThrottleBuster(DownloadUtils):
         if disable_progress_bar is None:
             disable_progress_bar = progress_hook is not None
 
-        logger.info(
-            f'Initializing download (threads - {self.threads}) for file in url - "{url}"'
-        )
+        logger.info(f'Initializing download (threads - {self.threads}) for file in url - "{url}"')
 
         async with self.client.stream("GET", url=url) as stream:
             stream.raise_for_status()
+
+            if (
+                stream.headers.get("Etag") is None
+                and suppress_incompatible_error is False
+                and self.threads != 1
+            ):
+                raise IncompatibleServerError(
+                    "Server response header lacks Etag value which means "
+                    "it doesn't support resuming downloads. "
+                    "Set threads to 1 or activate suppress_incompatible_error parameter "
+                    "to suppress this error."
+                )
 
             content_length = stream.headers.get("content-length", file_size)
             if type(content_length) is str:
@@ -328,15 +332,9 @@ class ThrottleBuster(DownloadUtils):
                     "Set the content-length using parameter file_size to suppress this error."
                 )
 
-            elif (
-                not test
-                and final_saved_to.exists()
-                and download_mode is not DownloadMode.START
-            ):
+            elif not test and final_saved_to.exists() and mode is not DownloadMode.START:
                 if os.path.getsize(final_saved_to) == content_length:
-                    logger.warning(
-                        f'Download already completed for the file in path "{final_saved_to}"'
-                    )
+                    logger.warning(f'Download already completed for the file in path "{final_saved_to}"')
                     return DownloadedFile(
                         url=url,
                         saved_to=final_saved_to,
@@ -351,9 +349,7 @@ class ThrottleBuster(DownloadUtils):
             filename_disp = filename if len(filename) <= 8 + 3 else filename[:8] + "..."
 
             if test:
-                logger.info(
-                    f"Download test passed successfully ({size_with_unit}) - {final_saved_to}"
-                )
+                logger.info(f"Download test passed successfully ({size_with_unit}) - {final_saved_to}")
                 return stream
 
             p_bar = tqdm.tqdm(
@@ -372,9 +368,7 @@ class ThrottleBuster(DownloadUtils):
                 **kwargs,
             )
 
-            for index, offset_load in enumerate(
-                self.get_offset_load(content_length, self.threads)
-            ):
+            for index, offset_load in enumerate(self.get_offset_load(content_length, self.threads)):
                 offset, load = offset_load
                 download_tracker = DownloadTracker(
                     url=url,
@@ -386,7 +380,7 @@ class ThrottleBuster(DownloadUtils):
                     index=index,
                     bytes_offset=offset,
                     expected_size=load,
-                    download_mode=download_mode,
+                    download_mode=mode,
                 )
 
                 download_tracker_items.append(download_tracker)
@@ -404,9 +398,7 @@ class ThrottleBuster(DownloadUtils):
             download_duration = time.time() - download_start_time
 
             merge_start_time = time.time()
-            saved_to = await self._merge_parts(
-                file_parts, filename=filename, keep_parts=keep_parts
-            )
+            saved_to = await self._merge_parts(file_parts, filename=filename, keep_parts=keep_parts)
 
             downloaded_file = DownloadedFile(
                 url=url,

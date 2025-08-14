@@ -62,40 +62,52 @@ def throttlebuster():
     "-T",
     "--threads",
     type=click.IntRange(1, THREADS_LIMIT),
-    help="Number of threads to carry out the download : 2",
+    help="Number of threads to carry out the download",
     default=2,
+    show_default=True,
 )
 @click.option(
-    "-C",
+    "-Z",
     "--chunk-size",
     type=click.INT,
-    help="Streaming download chunk size in kilobytes : 256",
+    help="Streaming download chunk size in kilobytes",
     default=256,
+    show_default=True,
 )
 @click.option(
     "-D",
     "--dir",
-    help="Directory for saving the downloaded file to : PWD",
+    help="Directory for saving the downloaded file to",
     type=click.Path(exists=True, file_okay=False, writable=True, resolve_path=True),
     default=CURRENT_WORKING_DIR,
+    show_default=True,
 )
 @click.option(
     "-P",
     "--part-dir",
-    help="Directory for temporarily saving the downloaded file-parts to : PWD",
+    help="Directory for temporarily saving the downloaded file-parts to",
     type=click.Path(exists=True, file_okay=False, writable=True, resolve_path=True),
     default=CURRENT_WORKING_DIR,
+    show_default=True,
 )
 @click.option(
     "-E",
     "--part-extension",
-    help=f"Filename extension for download parts : {DOWNLOAD_PART_EXTENSION}",
+    help="Filename extension for download parts",
     default=DOWNLOAD_PART_EXTENSION,
+    show_default=True,
 )
 @click.option(
     "-H",
     "--request-headers",
-    help="Httpx request headers : default",
+    help="Httpx request header - [key value] : default",
+    nargs=2,
+    multiple=True,
+)
+@click.option(
+    "-C",
+    "--request-cookies",
+    help="Httpx request cookie - [key value]: default",
     nargs=2,
     multiple=True,
 )
@@ -104,61 +116,76 @@ def throttlebuster():
     "--merge-buffer-size",
     type=click.IntRange(1, 102400),
     default=256,
-    help="Buffer size for merging the separated files in kilobytes : 256",
+    help="Buffer size for merging the separated files in kilobytes",
+    show_default=True,
 )
 @click.option("-F", "--filename", help="Filename for the downloaded content")
 @click.option(
     "-M",
-    "--download-mode",
-    help="Whether to start or resume incomplete download : auto",
+    "--mode",
+    help="Whether to start or resume incomplete download",
     type=click.Choice(DownloadMode.map().keys(), case_sensitive=False),
     default=DownloadMode.AUTO.value,
+    show_default=True,
 )
-@click.option("-L", "--file_size", type=click.INT, help="Size of the file to be downloaded : None")
-@click.option("-K", "--colour", default="cyan", help="Progress bar display color : cyan")
+@click.option("-L", "--file-size", type=click.INT, help="Size of the file to be downloaded")
+@click.option(
+    "-K",
+    "--colour",
+    default="cyan",
+    help="Progress bar display color",
+    show_default=True,
+)
 @click.option(
     "-k",
     "--keep-parts",
     is_flag=True,
-    help="Whether to retain the separate download parts : False",
+    help="Whether to retain the separate download parts",
 )
 @click.option(
     "-s",
     "--simple",
     is_flag=True,
-    help="Show percentage and bar only in progressbar : False",
+    help="Show percentage and bar only in progressbar",
 )
 @click.option(
     "-t",
     "--test",
     is_flag=True,
-    help="Just test if download is possible but do not actually download : False",
+    help="Just test if download is possible but do not actually download",
 )
 @click.option(
     "-a",
     "--ascii",
     is_flag=True,
-    help="Use unicode (smooth blocks) to fill the progress-bar meter : False",
+    help="Use unicode (smooth blocks) to fill the progress-bar meter",
 )
 @click.option(
     "-l",
     "--no-leave",
-    help="Do not keep all leaves of the progressbar : False",
+    help="Do not keep all leaves of the progressbar",
     is_flag=True,
 )
 @click.option(
     "-z",
     "--disable-progress-bar",
     is_flag=True,
-    help="Do not show progress_bar : False",
+    help="Do not show progress_bar",
 )
 @click.option(
     "-q",
     "--quiet",
     is_flag=True,
-    help="Do not show any interactive information : False",
+    help="Do not show any interactive information",
 )
-@click.option("-v", "--verbose", help="Show more detailed information : 0", count=True, default=0)
+@click.option(
+    "-v",
+    "--verbose",
+    help="Show more detailed information",
+    count=True,
+    default=0,
+    show_default=True,
+)
 def download_command(
     threads: int,
     chunk_size: int,
@@ -166,6 +193,7 @@ def download_command(
     part_dir: str,
     part_extension: str,
     request_headers: list[tuple[str]],
+    request_cookies: list[tuple[str]],
     merge_buffer_size: int,
     quiet: bool,
     verbose: int,
@@ -184,13 +212,14 @@ def download_command(
         part_extension=part_extension,
         merge_buffer_size=merge_buffer_size,
         request_headers=request_headers,
+        cookies=list(request_cookies),
     )
     if quiet:
         run_kwargs["disable_progress_bar"] = True
 
     run_kwargs["leave"] = run_kwargs.get("no_leave") is False
     run_kwargs.pop("no_leave")
-    run_kwargs["download_mode"] = DownloadMode.map().get(run_kwargs.get("download_mode"))
+    run_kwargs["mode"] = DownloadMode.map().get(run_kwargs.get("mode"))
 
     throttlebuster.run_sync(**run_kwargs)
 
