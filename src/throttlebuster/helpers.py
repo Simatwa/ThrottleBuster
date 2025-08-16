@@ -1,14 +1,33 @@
 """Supportive functions"""
 
-import asyncio
 import logging
 import re
 import typing as t
+import warnings
+
+import tqdm
 
 from throttlebuster.constants import ILLEGAL_CHARACTERS_PATTERN
 
 logger = logging.getLogger(__name__)
-loop = asyncio.new_event_loop()
+
+warnings.simplefilter("ignore", category=(tqdm.std.TqdmWarning,))
+"""Raised due to frac*"""
+
+
+class CustomTqdm(tqdm.tqdm):
+    """Formats `n` and `total` bar values"""
+
+    @staticmethod
+    def prettify_number(number: float) -> float:
+        return round(number, 2)
+
+    @property
+    def format_dict(self) -> dict:
+        prev_dict = super().format_dict
+        prev_dict["n"] = self.prettify_number(prev_dict.get("n"))
+        prev_dict["total"] = self.prettify_number(prev_dict.get("total"))
+        return prev_dict
 
 
 class DownloadUtils:

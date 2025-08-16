@@ -4,13 +4,11 @@ import asyncio
 import os
 import shutil
 import time
-import warnings
 from pathlib import Path
 from urllib.parse import urlparse
 
 import aiofiles
 import httpx
-import tqdm
 from httpx._types import HeaderTypes
 
 from throttlebuster.constants import (
@@ -28,18 +26,15 @@ from throttlebuster.exceptions import (
     IncompatibleServerError,
 )
 from throttlebuster.helpers import (
+    CustomTqdm,
     DownloadUtils,
     assert_instance,
     get_duration_string,
     get_filesize_string,
     logger,
-    loop,
     sanitize_filename,
 )
 from throttlebuster.models import DownloadedFile, DownloadTracker
-
-warnings.simplefilter("ignore", category=(tqdm.std.TqdmWarning,))
-"""Raised due to frac*"""
 
 
 class ThrottleBuster(DownloadUtils):
@@ -185,7 +180,7 @@ class ThrottleBuster(DownloadUtils):
     async def _downloader(
         self,
         download_tracker: DownloadTracker,
-        progress_bar: tqdm.tqdm,
+        progress_bar: CustomTqdm,
         progress_hook: callable,
     ) -> DownloadTracker:
         """Downloads each file part"""
@@ -206,7 +201,9 @@ class ThrottleBuster(DownloadUtils):
             downloaded_size = os.path.getsize(download_tracker.saved_to)
             download_tracker.bytes_offset += downloaded_size
             download_tracker.update_downloaded_size(downloaded_size)
-            progress_bar.total -= self.bytes_to_mb(downloaded_size)
+            progress_bar.n += self.bytes_to_mb(downloaded_size)
+            progress_bar.last_print_t = time.time()
+            progress_bar.last_print_n = progress_bar.n
 
         else:
             download_tracker.download_mode = DownloadMode.START
@@ -354,8 +351,8 @@ class ThrottleBuster(DownloadUtils):
                 logger.info(f"Download test passed successfully ({size_with_unit}) - {final_saved_to}")
                 return stream
 
-            logger.info(f"Starting download process (tasks - {self.tasks}) - {filename}")
-            p_bar = tqdm.tqdm(
+            logger.info(f'Starting download process ({self.tasks} tasks, {size_with_unit}) - "{filename}"')
+            p_bar = CustomTqdm(
                 total=self.bytes_to_mb(content_length),
                 desc=f"Downloading{f' [{filename_disp}]'}",
                 unit="Mb",
@@ -402,6 +399,8 @@ class ThrottleBuster(DownloadUtils):
             download_duration = time.time() - download_start_time
 
             merge_start_time = time.time()
+            p_bar.close()
+
             saved_to = await self._merge_parts(file_parts, filename=filename, keep_parts=keep_parts)
 
             downloaded_file = DownloadedFile(
@@ -424,4 +423,4 @@ class ThrottleBuster(DownloadUtils):
 
     def run_sync(self, *args, **kwargs) -> DownloadedFile | httpx.Response:
         """Synchronously initiate download process of a file."""
-        return loop.run_until_complete(self.run(*args, **kwargs))
+        return asyncio.run(self.run(*args, **kwargs))
