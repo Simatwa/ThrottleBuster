@@ -61,7 +61,7 @@ class DownloadedFile:
     file_parts: list[DownloadTracker] = field(default_factory=list)
 
     @property
-    def threads_used(self) -> int:
+    def tasks_used(self) -> int:
         return len(self.file_parts)
 
     @property

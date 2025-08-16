@@ -9,8 +9,8 @@ import click
 
 from throttlebuster.constants import (
     CURRENT_WORKING_DIR,
-    DEFAULT_THREADS,
-    DEFAULT_THREADS_LIMIT,
+    DEFAULT_TASKS,
+    DEFAULT_TASKS_LIMIT,
     DOWNLOAD_PART_EXTENSION,
     DownloadMode,
 )
@@ -61,10 +61,10 @@ def throttlebuster():
 @click.argument("url")
 @click.option(
     "-T",
-    "--threads",
-    type=click.IntRange(1, DEFAULT_THREADS_LIMIT),
-    help="Number of threads to carry out the download",
-    default=DEFAULT_THREADS,
+    "--tasks",
+    type=click.IntRange(1, DEFAULT_TASKS_LIMIT),
+    help="Number of tasks to carry out the download",
+    default=DEFAULT_TASKS,
     show_default=True,
 )
 @click.option(
@@ -194,7 +194,7 @@ def throttlebuster():
     show_default=True,
 )
 def download_command(
-    threads: int,
+    tasks: int,
     chunk_size: int,
     dir: str,
     part_dir: str,
@@ -214,7 +214,7 @@ def download_command(
     throttlebuster = ThrottleBuster(
         dir=dir,
         chunk_size=chunk_size,
-        threads=threads,
+        tasks=tasks,
         part_dir=part_dir,
         part_extension=part_extension,
         merge_buffer_size=merge_buffer_size,
@@ -241,13 +241,13 @@ def download_command(
 @click.option("-S", "--size", type=click.INT, help="Size in bytes of the targeted file")
 @click.option(
     "-T",
-    "--threads",
+    "--tasks",
     help="Threads amount to base the estimate on : Range (2-30)",
-    type=click.IntRange(1, DEFAULT_THREADS_LIMIT),
+    type=click.IntRange(1, DEFAULT_TASKS_LIMIT),
 )
 @click.option("-j", "--json", is_flag=True, help="Stdout estimates in json format")
-def estimate_command(throttle: int, url: str | None, size: int, threads: int, json: bool):
-    """Estimate download duration for different threads"""
+def estimate_command(throttle: int, url: str | None, size: int, tasks: int, json: bool):
+    """Estimate download duration for different tasks"""
     assert size or url, "Either size of the file (--size) or url to it (--url) is required."
 
     import rich
@@ -266,20 +266,20 @@ def estimate_command(throttle: int, url: str | None, size: int, threads: int, js
 
     estimates: list[tuple[str]] = []
 
-    def update_estimates(thread: int):
-        load_per_thread = size_in_bytes / thread
-        download_duration = load_per_thread / throttle
+    def update_estimates(task: int):
+        load_per_task = size_in_bytes / task
+        download_duration = load_per_task / throttle
         download_duration_string = get_duration_string(download_duration)
-        load_per_thread_string = get_filesize_string(load_per_thread)
-        estimates.append((str(thread), download_duration_string, load_per_thread_string))
+        load_per_task_string = get_filesize_string(load_per_task)
+        estimates.append((str(task), download_duration_string, load_per_task_string))
 
-    if threads is None:
-        for thread in range(2, 21):
-            update_estimates(thread)
+    if tasks is None:
+        for task in range(1, 21):
+            update_estimates(task)
         estimates.reverse()
 
     else:
-        update_estimates(threads)
+        update_estimates(tasks)
 
     if json:
         rich.print_json(data=dict(estimates=estimates), indent=4)
@@ -288,9 +288,9 @@ def estimate_command(throttle: int, url: str | None, size: int, threads: int, js
         from rich.table import Table
 
         table = Table(
-            "Threads",
+            "Tasks",
             "Duration",
-            "Load per thread",
+            "Load per task",
             title=(f"{get_filesize_string(size_in_bytes)} at {get_filesize_string(throttle)}/s"),
             show_lines=False,
         )

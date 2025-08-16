@@ -17,8 +17,8 @@ from throttlebuster.constants import (
     CURRENT_WORKING_DIR,
     DEFAULT_CHUNK_SIZE,
     DEFAULT_REQUEST_HEADERS,
-    DEFAULT_THREADS,
-    DEFAULT_THREADS_LIMIT,
+    DEFAULT_TASKS,
+    DEFAULT_TASKS_LIMIT,
     DOWNLOAD_PART_EXTENSION,
     DownloadMode,
 )
@@ -43,10 +43,10 @@ warnings.simplefilter("ignore", category=(tqdm.std.TqdmWarning,))
 
 
 class ThrottleBuster(DownloadUtils):
-    """Performs file download using multiple threads in attempt
+    """Performs file download using multiple tasks in attempt
     to bypass the throttling limit. The download time `(t)` reduces
     to a new value `(nt)` by value `nt = t / th` where `(th)` is the
-    threads amount.
+    tasks amount.
 
     This will only be useful when the throttling is done per `download
     stream` and NOT `per IP address` and server supports resuming download.
@@ -57,14 +57,14 @@ class ThrottleBuster(DownloadUtils):
     than improvement
     """
 
-    threads_limit: int = DEFAULT_THREADS_LIMIT
-    """Number of threads not to exceed"""
+    tasks_limit: int = DEFAULT_TASKS_LIMIT
+    """Number of tasks not to exceed"""
 
     def __init__(
         self,
         dir: Path | str = CURRENT_WORKING_DIR,
         chunk_size: int = DEFAULT_CHUNK_SIZE,
-        threads: int = DEFAULT_THREADS,
+        tasks: int = DEFAULT_TASKS,
         part_dir: Path | str = CURRENT_WORKING_DIR,
         part_extension: str = DOWNLOAD_PART_EXTENSION,
         request_headers: HeaderTypes = DEFAULT_REQUEST_HEADERS,
@@ -76,7 +76,7 @@ class ThrottleBuster(DownloadUtils):
         Args:
             dir (Path | str, optional): Directory for saving downloaded files to. Defaults to CURRENT_WORKING_DIR.
             chunk_size (int, optional): Streaming download chunk size in kilobytes. Defaults to DEFAULT_CHUNK_SIZE.
-            threads (int, optional): Number of threads to carry out the download. Defaults to DEFAULT_THREADS.
+            tasks (int, optional): Number of async tasks to carry out the download. Defaults to DEFAULT_TASKS.
             part_dir (Path | str, optional): Directory for temporarily saving downloaded file-parts to. Defaults to CURRENT_WORKING_DIR.
             part_extension (str, optional): Filename extension for download parts. Defaults to DOWNLOAD_PART_EXTENSION.
             request_headers (HeaderTypes, optional): Httpx request headers. Defaults to DEFAULT_REQUEST_HEADERS.
@@ -85,12 +85,12 @@ class ThrottleBuster(DownloadUtils):
         kwargs : Keyword arguments for `httpx.AsyncClient`
         """  # noqa: E501
         # TODO: add temp-dir
-        assert threads > 0 and threads <= self.threads_limit, (
-            f"Value for threads should be atleast 1 and at most {self.threads_limit}"
+        assert tasks > 0 and tasks <= self.tasks_limit, (
+            f"Value for tasks should be atleast 1 and at most {self.tasks_limit}"
         )
 
         self.chunk_size: int = chunk_size * 1_024
-        self.threads: int = int(threads)
+        self.tasks: int = int(tasks)
         self.dir: Path = Path(dir)
         self.part_dir = Path(part_dir)
         self.part_extension: str = part_extension
@@ -101,7 +101,7 @@ class ThrottleBuster(DownloadUtils):
 
     def __repr__(self) -> str:
         return (
-            rf"<{self.__module__}.{self.__class__.__name__} threads={self.threads} "
+            rf"<{self.__module__}.{self.__class__.__name__} tasks={self.tasks} "
             rf'dir="{self.dir}", chunk_size_in_bytes={self.chunk_size}>'
         )
 
@@ -293,7 +293,7 @@ class ThrottleBuster(DownloadUtils):
         if disable_progress_bar is None:
             disable_progress_bar = progress_hook is not None
 
-        logger.debug(f'Initializing download (threads - {self.threads}) for file in url - "{url}"')
+        logger.debug(f'Initializing download (tasks - {self.tasks}) for file in url - "{url}"')
 
         async with self.client.stream("GET", url=url) as stream:
             stream.raise_for_status()
@@ -301,12 +301,12 @@ class ThrottleBuster(DownloadUtils):
             if (
                 stream.headers.get("Etag") is None
                 and suppress_incompatible_error is False
-                and self.threads != 1
+                and self.tasks != 1
             ):
                 raise IncompatibleServerError(
                     "Server response header lacks Etag value which means "
                     "it doesn't support resuming downloads. "
-                    "Set threads to 1 or activate suppress_incompatible_error parameter "
+                    "Set tasks to 1 or activate suppress_incompatible_error parameter "
                     "to silence this error."
                 )
 
@@ -370,7 +370,7 @@ class ThrottleBuster(DownloadUtils):
                 **kwargs,
             )
 
-            for index, offset_load in enumerate(self.get_offset_load(content_length, self.threads)):
+            for index, offset_load in enumerate(self.get_offset_load(content_length, self.tasks)):
                 offset, load = offset_load
                 download_tracker = DownloadTracker(
                     url=url,
@@ -397,7 +397,7 @@ class ThrottleBuster(DownloadUtils):
 
             download_start_time = time.time()
 
-            logger.info(f"Starting download process (threads - {self.threads}) - {filename}")
+            logger.info(f"Starting download process (tasks - {self.tasks}) - {filename}")
 
             file_parts = await asyncio.gather(*async_task_items)
             download_duration = time.time() - download_start_time

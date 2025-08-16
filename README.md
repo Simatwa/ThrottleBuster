@@ -14,11 +14,11 @@
 <!-- TODO: Add logo & wakatime-->
 </div>
 
-ThrottleBuster is a Python library designed to accelerate file downloads by overcoming common throttling restrictions. It leverages multi-threading and asynchronous techniques to optimize download speeds, making it ideal for downloading large files.
+ThrottleBuster is a Python library designed to accelerate file downloads by overcoming common throttling restrictions. It leverages asynchronous techniques to optimize download speeds, making it ideal for downloading large files.
 
 ## Features
 
-- Concurrent downloading across multiple threads
+- Concurrent downloading across multiple tasks
 - Fully asynchronous with synchronous support
 - Ready to use commandline tool
 
@@ -63,7 +63,7 @@ server {
 from throttlebuster import ThrottleBuster
 
 async def main():
-    throttlebuster = ThrottleBuster(threads=4)
+    throttlebuster = ThrottleBuster(tasks=4)
     downloaded_file = await throttlebuster.run(
         "http://localhost:8888/test.1.opus",
     )
@@ -90,7 +90,7 @@ async def callback_function(data: DownloadTracker):
 
 
 async def main():
-    throttlebuster = ThrottleBuster(threads=1)
+    throttlebuster = ThrottleBuster(tasks=1)
     downloaded_file await throttlebuster.run(
         "http://localhost:8888/test.1.opus", progress_hook=callback_function
     )
@@ -152,7 +152,7 @@ Options:
 
 Commands:
   download  Download file using http protocol
-  estimate  Estimate download duration for different threads
+  estimate  Estimate download duration for different tasks
 ```
 
 </details>
@@ -160,7 +160,7 @@ Commands:
 #### Download
 
 ```sh
-$ python -m throttlebuster download http://localhost:8888/test.1.opus --threads 14
+$ python -m throttlebuster download http://localhost:8888/test.1.opus --tasks 14
 ```
 
 <details>
@@ -179,7 +179,7 @@ Usage: tbust download [OPTIONS] URL
   Download file using http protocol
 
 Options:
-  -T, --threads INTEGER RANGE     Number of threads to carry out the download
+  -T, --tasks INTEGER RANGE     Number of tasks to carry out the download
                                   [default: 2; 1<=x<=1000]
   -Z, --chunk-size INTEGER        Streaming download chunk size in kilobytes
                                   [default: 256]
@@ -279,12 +279,12 @@ $ python -m throttlebuster estimate --help
 ```
 Usage: python -m throttlebuster estimate [OPTIONS] THROTTLE
 
-  Estimate download duration for different threads
+  Estimate download duration for different tasks
 
 Options:
   -U, --url TEXT               Url to the target file
   -S, --size INTEGER           Size in bytes of the targeted file
-  -T, --threads INTEGER RANGE  Threads amount to base the estimate on : Range
+  -T, --tasks INTEGER RANGE  Threads amount to base the estimate on : Range
                                (2-30)  [1<=x<=1000]
   -j, --json                   Stdout estimates in json format
   --help                       Show this message and exit.

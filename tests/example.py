@@ -7,7 +7,7 @@ async def callback_function(data: DownloadTracker):
 
 
 async def main(url: str):
-    throttlebuster = ThrottleBuster(threads=1)
+    throttlebuster = ThrottleBuster(tasks=1)
     return await throttlebuster.run(
         url,
         # progress_hook=callback_function

@@ -43,7 +43,7 @@ def test_help(command):
     ],
     argvalues=[
         ["download http://localhost:8888/miel-martin.webm --test"],
-        ["download http://localhost:8888/miel-martin.webm --test --threads 3"],
+        ["download http://localhost:8888/miel-martin.webm --test --tasks 3"],
     ],
 )
 def test_download(command):

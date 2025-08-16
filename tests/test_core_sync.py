@@ -13,32 +13,32 @@ def test_download_test():
 
 
 @pytest.mark.parametrize(
-    argnames=["threads_amount"],
+    argnames=["tasks_amount"],
     argvalues=[
         (1,),
         (2,),
         (3,),
     ],
 )
-def test_real_download(threads_amount: int):
+def test_real_download(tasks_amount: int):
     throttlebuster = ThrottleBuster(
         dir=DOWNLOAD_DIR,
         part_dir=PART_DIR,
-        threads=threads_amount,
+        tasks=tasks_amount,
     )
     downloaded_file = throttlebuster.run_sync(FILE_URL, mode=DownloadMode.START, disable_progress_bar=True)
     assert downloaded_file.saved_to.exists()
-    assert downloaded_file.threads_used == threads_amount
+    assert downloaded_file.tasks_used == tasks_amount
     assert downloaded_file.is_complete
 
 
-def test_different_threads_time():
+def test_different_tasks_time():
     downloaded_file_items: list[DownloadedFile] = []
 
-    for thread in range(1, 5):
+    for task in range(1, 5):
         # Ensure file size is big enough or throttling is small enough
         # for time difference to be noticed
-        throttlebuster = ThrottleBuster(dir=DOWNLOAD_DIR, part_dir=PART_DIR, threads=thread)
+        throttlebuster = ThrottleBuster(dir=DOWNLOAD_DIR, part_dir=PART_DIR, tasks=task)
         downloaded_file = throttlebuster.run_sync(
             FILE_URL, mode=DownloadMode.START, disable_progress_bar=True
         )
