@@ -354,6 +354,7 @@ class ThrottleBuster(DownloadUtils):
                 logger.info(f"Download test passed successfully ({size_with_unit}) - {final_saved_to}")
                 return stream
 
+            logger.info(f"Starting download process (tasks - {self.tasks}) - {filename}")
             p_bar = tqdm.tqdm(
                 total=self.bytes_to_mb(content_length),
                 desc=f"Downloading{f' [{filename_disp}]'}",
@@ -396,8 +397,6 @@ class ThrottleBuster(DownloadUtils):
                 async_task_items.append(async_task)
 
             download_start_time = time.time()
-
-            logger.info(f"Starting download process (tasks - {self.tasks}) - {filename}")
 
             file_parts = await asyncio.gather(*async_task_items)
             download_duration = time.time() - download_start_time

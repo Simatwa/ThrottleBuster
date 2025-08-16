@@ -1,6 +1,6 @@
 [project]
 name = "throttlebuster"
-version = "0.1.3"
+version = "0.1.4"
 description = "Accelerate file downloads by overcoming common throttling restrictions."
 readme = "README.md"
 license = "Apache-2.0"
