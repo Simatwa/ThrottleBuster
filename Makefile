@@ -14,7 +14,8 @@ install:
 
 # Target to run tests
 test:
-	pytest tests -v --ff
+	coverage run -m pytest -v
+	coverage-badge -o assets/coverage.svg
 
 # target to build dist
 build:

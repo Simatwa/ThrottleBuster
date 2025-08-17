@@ -4,9 +4,10 @@
 
 [![PyPI version](https://badge.fury.io/py/throttlebuster.svg)](https://pypi.org/project/throttlebuster)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/throttlebuster)](https://pypi.org/project/throttlebuster)
+[![Code Coverage](./assets/coverage.svg)]()
 [![PyPI - License](https://img.shields.io/pypi/l/throttlebuster)](https://pypi.org/project/throttlebuster)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Hits](https://hits.sh/github.com/Simatwa/throttlebuster.svg?label=Total%20hits&logo=dotenv)](https://github.com/Simatwa/throttlebuster "Total hits")
+[![Hits](https://hits.sh/github.com/Simatwa/throttlebuster.svg?label=Total%20hits&logo=stats)](https://github.com/Simatwa/throttlebuster "Total hits")
 [![Downloads](https://pepy.tech/badge/throttlebuster)](https://pepy.tech/project/throttlebuster)
 <!-- 
 [![Code Coverage](https://img.shields.io/codecov/c/github/Simatwa/throttlebuster)](https://codecov.io/gh/Simatwa/throttlebuster)
