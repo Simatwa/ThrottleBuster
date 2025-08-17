@@ -17,6 +17,7 @@ from throttlebuster.constants import (
     DEFAULT_REQUEST_HEADERS,
     DEFAULT_TASKS,
     DEFAULT_TASKS_LIMIT,
+    DEFAULT_READ_TIMEOUT_ATTEMPTS,
     DOWNLOAD_PART_EXTENSION,
     DownloadMode,
 )
@@ -247,6 +248,8 @@ class ThrottleBuster(DownloadUtils):
         file_size: int = None,
         keep_parts: bool = False,
         suppress_incompatible_error: bool = False,
+        timeout_retry_attempts: int = DEFAULT_READ_TIMEOUT_ATTEMPTS,
+        retry_attempts_count: int = 0,
         colour: str = "cyan",
         simple: bool = False,
         test: bool = False,
@@ -265,6 +268,7 @@ class ThrottleBuster(DownloadUtils):
             file_size (int, optional): Size of the file to be downloaded. Defaults to None.
             keep_parts (bool, optional): Whether to retain the separate download parts. Defaults to False.
             suppress_incompatible_error (bool, optional): Do no raise error when response headers lack Etag. Defaults to False.
+            timeout_retry_attempts (int, optional): Number of times to retry download upon read request timing out. Defaults to DEFAULT_READ_TIMEOUT_ATTEMPTS.
             leave (bool, optional): Keep all leaves of the progressbar. Defaults to True.
             colour (str, optional): Progress bar display color. Defaults to "cyan".
             simple (bool, optional): Show percentage and bar only in progressbar. Deafults to False.
@@ -351,7 +355,10 @@ class ThrottleBuster(DownloadUtils):
                 logger.info(f"Download test passed successfully ({size_with_unit}) - {final_saved_to}")
                 return stream
 
-            logger.info(f'Starting download process ({self.tasks} tasks, {size_with_unit}) - "{filename}"')
+            logger.info(
+                f"{'Starting' if retry_attempts_count == 0 else 'Resuming'} "
+                f'download process ({self.tasks} tasks, {size_with_unit}) - "{filename}"'
+            )
             p_bar = CustomTqdm(
                 total=self.bytes_to_mb(content_length),
                 desc=f"Downloading{f' [{filename_disp}]'}",
@@ -395,7 +402,54 @@ class ThrottleBuster(DownloadUtils):
 
             download_start_time = time.time()
 
-            file_parts = await asyncio.gather(*async_task_items)
+            try:
+                file_parts = await asyncio.gather(*async_task_items)
+
+            except httpx.ReadTimeout as e:
+                retry_attempts_count += 1
+
+                if retry_attempts_count <= timeout_retry_attempts:
+                    # Retry
+                    logger.info(
+                        f"Retrying download after read request timed out - "
+                        f"attempt number ({retry_attempts_count}/{timeout_retry_attempts})"
+                    )
+
+                    return await self.run(
+                        url=url,
+                        filename=filename,
+                        progress_hook=progress_hook,
+                        mode=DownloadMode.AUTO,  # Changed
+                        disable_progress_bar=disable_progress_bar,
+                        file_size=file_size,
+                        keep_parts=keep_parts,
+                        suppress_incompatible_error=suppress_incompatible_error,
+                        timeout_retry_attempts=timeout_retry_attempts,
+                        retry_attempts_count=retry_attempts_count,
+                        colour=colour,
+                        simple=simple,
+                        test=test,
+                        leave=leave,
+                        ascii=ascii,
+                        **kwargs,
+                    )
+
+                else:
+                    if timeout_retry_attempts:
+                        logger.warning(
+                            f"Giving up on download after exhausting all {timeout_retry_attempts} "
+                            "read timeout retry attempts."
+                        )
+
+                    else:
+                        logger.info(
+                            "Download read request has timed out. In order to automatically retry the "
+                            " process, declare value for retry attempts using parameter "
+                            "timeout_retry_attempts"
+                        )
+
+                    raise e
+
             download_duration = time.time() - download_start_time
 
             merge_start_time = time.time()

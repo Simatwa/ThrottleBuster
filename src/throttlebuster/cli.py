@@ -11,6 +11,7 @@ from throttlebuster.constants import (
     CURRENT_WORKING_DIR,
     DEFAULT_TASKS,
     DEFAULT_TASKS_LIMIT,
+    DEFAULT_READ_TIMEOUT_ATTEMPTS,
     DOWNLOAD_PART_EXTENSION,
     DownloadMode,
 )
@@ -130,6 +131,14 @@ def throttlebuster():
     show_default=True,
 )
 @click.option("-L", "--file-size", type=click.INT, help="Size of the file to be downloaded")
+@click.option(
+    "-R",
+    "--timeout-retry-attempts",
+    type=click.INT,
+    help="Number of times to retry download upon read request timing out",
+    show_default=True,
+    default=DEFAULT_READ_TIMEOUT_ATTEMPTS,
+)
 @click.option(
     "-K",
     "--colour",
