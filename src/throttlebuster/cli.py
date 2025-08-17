@@ -242,7 +242,7 @@ def download_command(
 @click.option(
     "-T",
     "--tasks",
-    help="Threads amount to base the estimate on : Range (2-30)",
+    help="Tasks amount to base the estimate on : Range (2-30)",
     type=click.IntRange(1, DEFAULT_TASKS_LIMIT),
 )
 @click.option("-j", "--json", is_flag=True, help="Stdout estimates in json format")

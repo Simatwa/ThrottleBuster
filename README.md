@@ -1,21 +1,17 @@
 <div align="center">
 
-# ThrottleBuster
+
+<h1>ThrottleBuster  <img alt="Project logo" src="https://raw.githubusercontent.com/Simatwa/ThrottleBuster/refs/heads/main/assets/logo.png" width="60px"/></h1>
 
 [![PyPI version](https://badge.fury.io/py/throttlebuster.svg)](https://pypi.org/project/throttlebuster)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/throttlebuster)](https://pypi.org/project/throttlebuster)
-[![Code Coverage](./assets/coverage.svg)]()
 [![PyPI - License](https://img.shields.io/pypi/l/throttlebuster)](https://pypi.org/project/throttlebuster)
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Hits](https://hits.sh/github.com/Simatwa/throttlebuster.svg?label=Total%20hits&logo=stats)](https://github.com/Simatwa/throttlebuster "Total hits")
+[![Code Coverage](https://raw.githubusercontent.com/Simatwa/ThrottleBuster/refs/heads/main/assets/coverage.svg)]()
 [![Downloads](https://pepy.tech/badge/throttlebuster)](https://pepy.tech/project/throttlebuster)
-<!-- 
-[![Code Coverage](https://img.shields.io/codecov/c/github/Simatwa/throttlebuster)](https://codecov.io/gh/Simatwa/throttlebuster)
--->
-<!-- TODO: Add logo & wakatime-->
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 </div>
 
-ThrottleBuster is a Python library designed to accelerate file downloads by overcoming common throttling restrictions. It leverages asynchronous techniques to optimize download speeds, making it ideal for downloading large files.
+ThrottleBuster is a Python library that accelerates file downloads by bypassing common throttling restrictions. It uses asynchronous methods to improve download speeds and is especially useful for handling large files.
 
 ## Features
 
@@ -32,12 +28,12 @@ $ pip install "throttlebuster[cli]"
 
 ## Usage
 
-For testing purposes, you can use this config example for [Nginx](https://nginx.org) server.
+For testing, you can set up an [Nginx](https://nginx.org) server with the example configuration below:.
 
 ```conf
 # Test server
 
-# Create a file to /etc/nginx/sites-enabled directory or add it to default nginx.conf file
+## Create this file in /etc/nginx/sites-enabled or add it to the default nginx.conf
 
 server {
     listen 8888;
@@ -238,30 +234,31 @@ $ python -m throttlebuster estimate --url http://localhost:8888/miel-martin.webm
 </summary>
 
 ```
-         337.88 MB at 260.00 KB/s         
-┏━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┓
-┃ Threads ┃ Duration   ┃ Load per thread ┃
-┡━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━┩
-│ 20      │ 1.08 Mins  │ 16.89 MB        │
-│ 19      │ 1.14 Mins  │ 17.78 MB        │
-│ 18      │ 1.20 Mins  │ 18.77 MB        │
-│ 17      │ 1.27 Mins  │ 19.88 MB        │
-│ 16      │ 1.35 Mins  │ 21.12 MB        │
-│ 15      │ 1.44 Mins  │ 22.53 MB        │
-│ 14      │ 1.55 Mins  │ 24.13 MB        │
-│ 13      │ 1.67 Mins  │ 25.99 MB        │
-│ 12      │ 1.80 Mins  │ 28.16 MB        │
-│ 11      │ 1.97 Mins  │ 30.72 MB        │
-│ 10      │ 2.17 Mins  │ 33.79 MB        │
-│ 9       │ 2.41 Mins  │ 37.54 MB        │
-│ 8       │ 2.71 Mins  │ 42.24 MB        │
-│ 7       │ 3.09 Mins  │ 48.27 MB        │
-│ 6       │ 3.61 Mins  │ 56.31 MB        │
-│ 5       │ 4.33 Mins  │ 67.58 MB        │
-│ 4       │ 5.41 Mins  │ 84.47 MB        │
-│ 3       │ 7.22 Mins  │ 112.63 MB       │
-│ 2       │ 10.83 Mins │ 168.94 MB       │
-└─────────┴────────────┴─────────────────┘
+       337.88 MB at 260.00 KB/s       
+┏━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓
+┃ Tasks ┃ Duration   ┃ Load per task ┃
+┡━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩
+│ 20    │ 1.08 Mins  │ 16.89 MB      │
+│ 19    │ 1.14 Mins  │ 17.78 MB      │
+│ 18    │ 1.20 Mins  │ 18.77 MB      │
+│ 17    │ 1.27 Mins  │ 19.88 MB      │
+│ 16    │ 1.35 Mins  │ 21.12 MB      │
+│ 15    │ 1.44 Mins  │ 22.53 MB      │
+│ 14    │ 1.55 Mins  │ 24.13 MB      │
+│ 13    │ 1.67 Mins  │ 25.99 MB      │
+│ 12    │ 1.80 Mins  │ 28.16 MB      │
+│ 11    │ 1.97 Mins  │ 30.72 MB      │
+│ 10    │ 2.17 Mins  │ 33.79 MB      │
+│ 9     │ 2.41 Mins  │ 37.54 MB      │
+│ 8     │ 2.71 Mins  │ 42.24 MB      │
+│ 7     │ 3.09 Mins  │ 48.27 MB      │
+│ 6     │ 3.61 Mins  │ 56.31 MB      │
+│ 5     │ 4.33 Mins  │ 67.58 MB      │
+│ 4     │ 5.41 Mins  │ 84.47 MB      │
+│ 3     │ 7.22 Mins  │ 112.63 MB     │
+│ 2     │ 10.83 Mins │ 168.94 MB     │
+│ 1     │ 21.66 Mins │ 337.88 MB     │
+└───────┴────────────┴───────────────┘
 ```
 
 </details>
@@ -283,12 +280,12 @@ Usage: python -m throttlebuster estimate [OPTIONS] THROTTLE
   Estimate download duration for different tasks
 
 Options:
-  -U, --url TEXT               Url to the target file
-  -S, --size INTEGER           Size in bytes of the targeted file
-  -T, --tasks INTEGER RANGE  Threads amount to base the estimate on : Range
-                               (2-30)  [1<=x<=1000]
-  -j, --json                   Stdout estimates in json format
-  --help                       Show this message and exit.
+  -U, --url TEXT             Url to the target file
+  -S, --size INTEGER         Size in bytes of the targeted file
+  -T, --tasks INTEGER RANGE  Tasks amount to base the estimate on : Range
+                             (2-30)  [1<=x<=1000]
+  -j, --json                 Stdout estimates in json format
+  --help                     Show this message and exit.
 ```
 
 </details>
