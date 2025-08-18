@@ -81,16 +81,18 @@ class ThrottleBuster(DownloadUtils):
         kwargs : Keyword arguments for `httpx.AsyncClient`
         """  # noqa: E501
         # TODO: add temp-dir
-        assert tasks > 0 and tasks <= self.tasks_limit, (
-            f"Value for tasks should be atleast 1 and at most {self.tasks_limit}"
-        )
+        assert (
+            tasks > 0 and tasks <= self.tasks_limit
+        ), f"Value for tasks should be atleast 1 and at most {self.tasks_limit}"
 
         self.chunk_size: int = chunk_size * 1_024
         self.tasks: int = int(tasks)
         self.dir: Path = Path(dir)
         self.part_dir = Path(part_dir)
         self.part_extension: str = part_extension
-        self.merge_buffer_size: int = (chunk_size if merge_buffer_size is None else merge_buffer_size) * 1_024
+        self.merge_buffer_size: int = (
+            chunk_size if merge_buffer_size is None else merge_buffer_size
+        ) * 1_024
         self.client: httpx.AsyncClient = httpx.AsyncClient(**kwargs)
         """httpx AsyncClient"""
         self.client.headers.update(request_headers)
@@ -101,7 +103,9 @@ class ThrottleBuster(DownloadUtils):
             rf'dir="{self.dir}", chunk_size_in_bytes={self.chunk_size}>'
         )
 
-    def _generate_saved_to(self, filename: str, dir: Path, index: int | None = None) -> Path:
+    def _generate_saved_to(
+        self, filename: str, dir: Path, index: int | None = None
+    ) -> Path:
         filename, ext = os.path.splitext(filename)
         index = f".{index}" if index is not None else ""
         ext = ext if ext else ""
@@ -113,7 +117,9 @@ class ThrottleBuster(DownloadUtils):
         new_headers["Range"] = f"bytes={bytes_offset}-"
         return new_headers
 
-    async def _call_progress_hook(self, progress_hook: callable, download_tracker: DownloadTracker) -> None:
+    async def _call_progress_hook(
+        self, progress_hook: callable, download_tracker: DownloadTracker
+    ) -> None:
         """Interacts with progress hook"""
         if progress_hook is None:
             return
@@ -155,7 +161,9 @@ class ThrottleBuster(DownloadUtils):
             logger.info(f'Moving downloaded part to "{save_to}"')
             return Path(shutil.move(file_parts[0].saved_to, save_to))
 
-        logger.info(f'Merging {len(file_parts)} file part{"s" if len(file_parts) > 1 else ""} to "{save_to}"')
+        logger.info(
+            f'Merging {len(file_parts)} file part{"s" if len(file_parts) > 1 else ""} to "{save_to}"'
+        )
 
         async with aiofiles.open(
             save_to,
@@ -167,7 +175,9 @@ class ThrottleBuster(DownloadUtils):
                     read_size = self.merge_buffer_size
 
                     while saved_size < part.expected_size:
-                        chunk = await part_fh.read(min(read_size, part.expected_size - saved_size))
+                        chunk = await part_fh.read(
+                            min(read_size, part.expected_size - saved_size)
+                        )
                         if not chunk:
                             break
                         await fh.write(chunk)
@@ -229,7 +239,9 @@ class ThrottleBuster(DownloadUtils):
 
                     download_tracker.update_downloaded_size(len(chunk))
 
-                    progress_bar.update(self.bytes_to_mb(download_tracker.streaming_chunk_size))
+                    progress_bar.update(
+                        self.bytes_to_mb(download_tracker.streaming_chunk_size)
+                    )
                     await self._call_progress_hook(progress_hook, download_tracker)
 
                     if download_tracker.is_complete:
@@ -284,9 +296,9 @@ class ThrottleBuster(DownloadUtils):
         assert_instance(mode, DownloadMode)
 
         if progress_hook is not None:
-            assert callable(progress_hook), (
-                f"Value for progress_hook must be a function not {type(progress_hook)}"
-            )
+            assert callable(
+                progress_hook
+            ), f"Value for progress_hook must be a function not {type(progress_hook)}"
 
         async_task_items = []
         download_tracker_items = []
@@ -294,189 +306,207 @@ class ThrottleBuster(DownloadUtils):
         if disable_progress_bar is None:
             disable_progress_bar = progress_hook is not None
 
-        logger.debug(f'Initializing download (tasks - {self.tasks}) for file in url - "{url}"')
+        logger.debug(
+            f'Initializing download (tasks - {self.tasks}) for file in url - "{url}"'
+        )
 
-        async with self.client.stream("GET", url=url) as stream:
-            stream.raise_for_status()
+        try:
+            async with self.client.stream("GET", url=url) as stream:
+                stream.raise_for_status()
 
-            if (
-                stream.headers.get("Etag") is None
-                and suppress_incompatible_error is False
-                and self.tasks != 1
-            ):
-                raise IncompatibleServerError(
-                    "Server response header lacks Etag value which means "
-                    "it doesn't support resuming downloads. "
-                    "Set tasks to 1 or activate suppress_incompatible_error parameter "
-                    "to silence this error."
-                )
-
-            content_length = stream.headers.get("content-length", file_size)
-            if type(content_length) is str:
-                content_length = int(content_length)
-
-            filename = filename or self.get_filename_from_header(stream.headers)
-
-            if filename is None:
-                # Try to get from path
-                _, filename = os.path.split(urlparse(url).path)
-                if not filename:
-                    raise FilenameNotFoundError(
-                        "Unable to get filename. Pass value using parameter filename to suppress this error"
+                if (
+                    stream.headers.get("Etag") is None
+                    and suppress_incompatible_error is False
+                    and self.tasks != 1
+                ):
+                    raise IncompatibleServerError(
+                        "Server response header lacks Etag value which means "
+                        "it doesn't support resuming downloads. "
+                        "Set tasks to 1 or activate suppress_incompatible_error parameter "
+                        "to silence this error."
                     )
 
-            filename = sanitize_filename(filename)
+                content_length = stream.headers.get("content-length", file_size)
+                if type(content_length) is str:
+                    content_length = int(content_length)
 
-            final_saved_to = self._generate_saved_to(filename, self.dir)
+                filename = filename or self.get_filename_from_header(stream.headers)
 
-            if content_length is None:
-                raise FilesizeNotFoundError(
-                    "Unable to get the content-length of the file from server response. "
-                    "Set the content-length using parameter file_size to suppres this error."
-                )
+                if filename is None:
+                    # Try to get from path
+                    _, filename = os.path.split(urlparse(url).path)
+                    if not filename:
+                        raise FilenameNotFoundError(
+                            "Unable to get filename. Pass value using parameter filename to suppress this error"
+                        )
 
-            elif not test and final_saved_to.exists() and mode is not DownloadMode.START:
-                if os.path.getsize(final_saved_to) == content_length:
-                    logger.warning(f'Download already completed for the file in path "{final_saved_to}"')
-                    return DownloadedFile(
-                        url=url,
-                        saved_to=final_saved_to,
-                        size=os.path.getsize(final_saved_to),
-                        duration=0,
-                        file_parts=[],
-                        merge_duration=0,
-                        expected_size=content_length,
+                filename = sanitize_filename(filename)
+
+                final_saved_to = self._generate_saved_to(filename, self.dir)
+
+                if content_length is None:
+                    raise FilesizeNotFoundError(
+                        "Unable to get the content-length of the file from server response. "
+                        "Set the content-length using parameter file_size to suppres this error."
                     )
 
-            size_with_unit = get_filesize_string(content_length)
-            filename_disp = filename if len(filename) <= 8 + 3 else filename[:8] + "..."
+                elif (
+                    not test
+                    and final_saved_to.exists()
+                    and mode is not DownloadMode.START
+                ):
+                    if os.path.getsize(final_saved_to) == content_length:
+                        logger.warning(
+                            f'Download already completed for the file in path "{final_saved_to}"'
+                        )
+                        return DownloadedFile(
+                            url=url,
+                            saved_to=final_saved_to,
+                            size=os.path.getsize(final_saved_to),
+                            duration=0,
+                            file_parts=[],
+                            merge_duration=0,
+                            expected_size=content_length,
+                        )
 
-            if test:
-                logger.info(f"Download test passed successfully ({size_with_unit}) - {final_saved_to}")
-                return stream
+                size_with_unit = get_filesize_string(content_length)
+                filename_disp = (
+                    filename if len(filename) <= 8 + 3 else filename[:8] + "..."
+                )
 
-            logger.info(
-                f"{'Starting' if retry_attempts_count == 0 else 'Resuming'} "
-                f'download process ({self.tasks} tasks, {size_with_unit}) - "{filename}"'
-            )
-            p_bar = CustomTqdm(
-                total=self.bytes_to_mb(content_length),
-                desc=f"Downloading{f' [{filename_disp}]'}",
-                unit="Mb",
-                disable=disable_progress_bar,
-                colour=colour,
-                leave=leave,
-                ascii=ascii,
-                bar_format=(
-                    "{l_bar}{bar} | %(size)s" % (dict(size=size_with_unit))
-                    if simple
-                    else "{l_bar}{bar}{r_bar}"
-                ),
-                **kwargs,
-            )
+                if test:
+                    logger.info(
+                        f"Download test passed successfully ({size_with_unit}) - {final_saved_to}"
+                    )
+                    return stream
 
-            for index, offset_load in enumerate(self.get_offset_load(content_length, self.tasks)):
-                offset, load = offset_load
-                download_tracker = DownloadTracker(
-                    url=url,
-                    saved_to=self._generate_saved_to(
-                        f"{filename}-{offset}{self.part_extension}",
-                        self.part_dir,
-                        index,
+                logger.info(
+                    f"{'Starting' if retry_attempts_count == 0 else 'Resuming'} "
+                    f'download process ({self.tasks} tasks, {size_with_unit}) - "{filename}"'
+                )
+                p_bar = CustomTqdm(
+                    total=self.bytes_to_mb(content_length),
+                    desc=f"Downloading{f' [{filename_disp}]'}",
+                    unit="Mb",
+                    disable=disable_progress_bar,
+                    colour=colour,
+                    leave=leave,
+                    ascii=ascii,
+                    bar_format=(
+                        "{l_bar}{bar} | %(size)s" % (dict(size=size_with_unit))
+                        if simple
+                        else "{l_bar}{bar}{r_bar}"
                     ),
-                    index=index,
-                    bytes_offset=offset,
-                    expected_size=load,
-                    download_mode=mode,
+                    **kwargs,
                 )
 
-                download_tracker_items.append(download_tracker)
-                async_task = asyncio.create_task(
-                    self._downloader(
-                        download_tracker,
-                        progress_bar=p_bar,
-                        progress_hook=progress_hook,
+                for index, offset_load in enumerate(
+                    self.get_offset_load(content_length, self.tasks)
+                ):
+                    offset, load = offset_load
+                    download_tracker = DownloadTracker(
+                        url=url,
+                        saved_to=self._generate_saved_to(
+                            f"{filename}-{offset}{self.part_extension}",
+                            self.part_dir,
+                            index,
+                        ),
+                        index=index,
+                        bytes_offset=offset,
+                        expected_size=load,
+                        download_mode=mode,
                     )
-                )
-                async_task_items.append(async_task)
 
-            download_start_time = time.time()
+                    download_tracker_items.append(download_tracker)
+                    async_task = asyncio.create_task(
+                        self._downloader(
+                            download_tracker,
+                            progress_bar=p_bar,
+                            progress_hook=progress_hook,
+                        )
+                    )
+                    async_task_items.append(async_task)
 
-            try:
+                download_start_time = time.time()
+
                 file_parts = await asyncio.gather(*async_task_items)
 
-            except httpx.ReadTimeout as e:
-                retry_attempts_count += 1
+                download_duration = time.time() - download_start_time
 
-                if retry_attempts_count <= timeout_retry_attempts:
-                    # Retry
+                merge_start_time = time.time()
+                p_bar.close()
 
-                    p_bar.close()
+                saved_to = await self._merge_parts(
+                    file_parts, filename=filename, keep_parts=keep_parts
+                )
 
-                    logger.info(
-                        f"Retrying download after read request timed out - "
-                        f"attempt number ({retry_attempts_count}/{timeout_retry_attempts})"
-                    )
+                downloaded_file = DownloadedFile(
+                    url=url,
+                    saved_to=saved_to,
+                    expected_size=content_length,
+                    size=os.path.getsize(saved_to),
+                    file_parts=file_parts,
+                    merge_duration=time.time() - merge_start_time,
+                    duration=download_duration,
+                )
 
-                    return await self.run(
-                        url=url,
-                        filename=filename,
-                        progress_hook=progress_hook,
-                        mode=DownloadMode.AUTO,  # Changed
-                        disable_progress_bar=disable_progress_bar,
-                        file_size=file_size,
-                        keep_parts=keep_parts,
-                        suppress_incompatible_error=suppress_incompatible_error,
-                        timeout_retry_attempts=timeout_retry_attempts,
-                        retry_attempts_count=retry_attempts_count,
-                        colour=colour,
-                        simple=simple,
-                        test=test,
-                        leave=leave,
-                        ascii=ascii,
-                        **kwargs,
+                logger.info(
+                    f"Done downloading {downloaded_file.size_string} "
+                    f"in {downloaded_file.duration_string} "
+                    f"{'merged' if self.tasks>1 else 'moved'} in "
+                    f"{downloaded_file.merge_duration_string}, "
+                    f'saved to "{downloaded_file.saved_to}"'
+                )
+
+                return downloaded_file
+
+        except httpx.ReadTimeout as e:
+            retry_attempts_count += 1
+
+            if retry_attempts_count <= timeout_retry_attempts:
+                # Retry
+
+                p_bar.close()
+
+                logger.info(
+                    f"Retrying download after read request timed out - "
+                    f"attempt number ({retry_attempts_count}/{timeout_retry_attempts})"
+                )
+
+                return await self.run(
+                    url=url,
+                    filename=filename,
+                    progress_hook=progress_hook,
+                    mode=DownloadMode.AUTO,  # Changed
+                    disable_progress_bar=disable_progress_bar,
+                    file_size=file_size,
+                    keep_parts=keep_parts,
+                    suppress_incompatible_error=suppress_incompatible_error,
+                    timeout_retry_attempts=timeout_retry_attempts,
+                    retry_attempts_count=retry_attempts_count,
+                    colour=colour,
+                    simple=simple,
+                    test=test,
+                    leave=leave,
+                    ascii=ascii,
+                    **kwargs,
+                )
+
+            else:
+                if timeout_retry_attempts:
+                    logger.warning(
+                        f"Giving up on download after exhausting all {timeout_retry_attempts} "
+                        "read timeout retry attempts."
                     )
 
                 else:
-                    if timeout_retry_attempts:
-                        logger.warning(
-                            f"Giving up on download after exhausting all {timeout_retry_attempts} "
-                            "read timeout retry attempts."
-                        )
+                    logger.info(
+                        "Download read request has timed out. In order to automatically retry the "
+                        " process, declare value for retry attempts using parameter "
+                        "timeout_retry_attempts"
+                    )
 
-                    else:
-                        logger.info(
-                            "Download read request has timed out. In order to automatically retry the "
-                            " process, declare value for retry attempts using parameter "
-                            "timeout_retry_attempts"
-                        )
-
-                    raise e
-
-            download_duration = time.time() - download_start_time
-
-            merge_start_time = time.time()
-            p_bar.close()
-
-            saved_to = await self._merge_parts(file_parts, filename=filename, keep_parts=keep_parts)
-
-            downloaded_file = DownloadedFile(
-                url=url,
-                saved_to=saved_to,
-                expected_size=content_length,
-                size=os.path.getsize(saved_to),
-                file_parts=file_parts,
-                merge_duration=time.time() - merge_start_time,
-                duration=download_duration,
-            )
-
-            logger.info(
-                f"Done downloading {get_filesize_string(downloaded_file.size)} "
-                f"in {get_duration_string(downloaded_file.duration)} "
-                f'saved to "{downloaded_file.saved_to}"'
-            )
-
-            return downloaded_file
+                raise e
 
     def run_sync(self, *args, **kwargs) -> DownloadedFile | httpx.Response:
         """Synchronously initiate download process of a file."""
