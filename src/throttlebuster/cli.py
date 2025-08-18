@@ -9,9 +9,9 @@ import click
 
 from throttlebuster.constants import (
     CURRENT_WORKING_DIR,
+    DEFAULT_READ_TIMEOUT_ATTEMPTS,
     DEFAULT_TASKS,
     DEFAULT_TASKS_LIMIT,
-    DEFAULT_READ_TIMEOUT_ATTEMPTS,
     DOWNLOAD_PART_EXTENSION,
     DownloadMode,
 )
