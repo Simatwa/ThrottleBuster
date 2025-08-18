@@ -410,6 +410,9 @@ class ThrottleBuster(DownloadUtils):
 
                 if retry_attempts_count <= timeout_retry_attempts:
                     # Retry
+
+                    p_bar.close()
+
                     logger.info(
                         f"Retrying download after read request timed out - "
                         f"attempt number ({retry_attempts_count}/{timeout_retry_attempts})"
