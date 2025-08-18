@@ -14,10 +14,10 @@ from httpx._types import HeaderTypes
 from throttlebuster.constants import (
     CURRENT_WORKING_DIR,
     DEFAULT_CHUNK_SIZE,
+    DEFAULT_READ_TIMEOUT_ATTEMPTS,
     DEFAULT_REQUEST_HEADERS,
     DEFAULT_TASKS,
     DEFAULT_TASKS_LIMIT,
-    DEFAULT_READ_TIMEOUT_ATTEMPTS,
     DOWNLOAD_PART_EXTENSION,
     DownloadMode,
 )
@@ -30,7 +30,6 @@ from throttlebuster.helpers import (
     CustomTqdm,
     DownloadUtils,
     assert_instance,
-    get_duration_string,
     get_filesize_string,
     logger,
     sanitize_filename,
@@ -323,7 +322,8 @@ class ThrottleBuster(DownloadUtils):
                     _, filename = os.path.split(urlparse(url).path)
                     if not filename:
                         raise FilenameNotFoundError(
-                            "Unable to get filename. Pass value using parameter filename to suppress this error"
+                            "Unable to get filename. Pass value using filename parameter "
+                            "to suppress this error"
                         )
 
                 filename = sanitize_filename(filename)
