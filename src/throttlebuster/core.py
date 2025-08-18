@@ -502,7 +502,7 @@ class ThrottleBuster(DownloadUtils):
                 else:
                     logger.info(
                         "Download read request has timed out. In order to automatically retry the "
-                        " process, declare value for retry attempts using parameter "
+                        "process, declare value for retry attempts using parameter "
                         "timeout_retry_attempts"
                     )
 
