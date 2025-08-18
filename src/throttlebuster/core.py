@@ -380,7 +380,7 @@ class ThrottleBuster(DownloadUtils):
                 download_tracker = DownloadTracker(
                     url=url,
                     saved_to=self._generate_saved_to(
-                        f"{filename}-{offset, load}{self.part_extension}",
+                        f"{filename}-{offset}{self.part_extension}",
                         self.part_dir,
                         index,
                     ),
