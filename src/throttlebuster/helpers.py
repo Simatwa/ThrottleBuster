@@ -29,6 +29,18 @@ class CustomTqdm(tqdm.tqdm):
         prev_dict["total"] = self.prettify_number(prev_dict.get("total"))
         return prev_dict
 
+    def update(self, n=1):
+        # avoid progresbar from surpassing 100%
+        # It's not so much effective due to async nature
+
+        if self.last_print_n >= self.total:
+            return
+
+        if self.last_print_n + n > self.total:
+            return super().update(self.total - self.last_print_n)
+
+        return super().update(n)
+
 
 class DownloadUtils:
     @classmethod

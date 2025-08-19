@@ -129,7 +129,13 @@ class ThrottleBuster(DownloadUtils):
         self,
         file_parts: list[DownloadTracker],
         filename: Path,
+        content_length: int,
         keep_parts: bool = False,
+        colour: str = "cyan",
+        disable_progress_bar: bool = False,
+        simple: bool = False,
+        ascii: bool = False,
+        **p_bar_kwargs,
     ) -> Path:
         """Combines the separated download parts into one.
 
@@ -156,6 +162,22 @@ class ThrottleBuster(DownloadUtils):
 
         logger.info(f'Merging {len(file_parts)} file part{"s" if len(file_parts) > 1 else ""} to "{save_to}"')
 
+        p_bar = CustomTqdm(
+            total=self.bytes_to_mb(content_length),
+            desc="Merging",
+            unit="Mb",
+            disable=disable_progress_bar,
+            colour=colour,
+            leave=False,
+            ascii=ascii,
+            bar_format=(
+                "{l_bar}{bar} | %(size)s" % dict(size=get_filesize_string(content_length))
+                if simple
+                else "{l_bar}{bar}{r_bar}"
+            ),
+            **p_bar_kwargs,
+        )
+
         async with aiofiles.open(
             save_to,
             "wb",
@@ -166,11 +188,16 @@ class ThrottleBuster(DownloadUtils):
                     read_size = self.merge_buffer_size
 
                     while saved_size < part.expected_size:
-                        chunk = await part_fh.read(min(read_size, part.expected_size - saved_size))
+                        current_read_size = min(read_size, part.expected_size - saved_size)
+
+                        chunk = await part_fh.read(current_read_size)
                         if not chunk:
                             break
+
                         await fh.write(chunk)
-                        saved_size += len(chunk)
+                        saved_size += current_read_size
+
+                        p_bar.update(self.bytes_to_mb(current_read_size))
 
                 if not keep_parts:
                     os.remove(part.saved_to)
@@ -254,7 +281,7 @@ class ThrottleBuster(DownloadUtils):
         test: bool = False,
         leave: bool = True,
         ascii: bool = False,
-        **kwargs,
+        **p_bar_kwargs,
     ) -> DownloadedFile | httpx.Response:
         """Initiate download process of a file.
 
@@ -274,7 +301,7 @@ class ThrottleBuster(DownloadUtils):
             test (bool, optional): Just test if download is possible but do not actually download. Defaults to False.
             ascii (bool, optional): Use unicode (smooth blocks) to fill the progress-bar meter. Defaults to False.
 
-        kwargs: Other keyword arguments for `tqdm.tdqm`
+        p_bar_kwargs: Other keyword arguments for `tqdm.tdqm`
 
         Returns:
             DownloadedFile | httpx.Response: Downloaded file details or httpx Response incase of (test=True).
@@ -373,7 +400,7 @@ class ThrottleBuster(DownloadUtils):
                         if simple
                         else "{l_bar}{bar}{r_bar}"
                     ),
-                    **kwargs,
+                    **p_bar_kwargs,
                 )
 
                 for index, offset_load in enumerate(self.get_offset_load(content_length, self.tasks)):
@@ -410,7 +437,17 @@ class ThrottleBuster(DownloadUtils):
                 merge_start_time = time.time()
                 p_bar.close()
 
-                saved_to = await self._merge_parts(file_parts, filename=filename, keep_parts=keep_parts)
+                saved_to = await self._merge_parts(
+                    file_parts,
+                    filename=filename,
+                    keep_parts=keep_parts,
+                    content_length=content_length,
+                    colour=colour,
+                    disable_progress_bar=disable_progress_bar,
+                    simple=simple,
+                    ascii=ascii,
+                    **p_bar_kwargs,
+                )
 
                 downloaded_file = DownloadedFile(
                     url=url,
@@ -424,9 +461,9 @@ class ThrottleBuster(DownloadUtils):
 
                 logger.info(
                     f"Done downloading {downloaded_file.size_string} "
-                    f"in {downloaded_file.duration_string} "
+                    f"in {downloaded_file.duration_string.lower()} "
                     f"{'merged' if self.tasks > 1 else 'moved'} in "
-                    f"{downloaded_file.merge_duration_string}, "
+                    f"{downloaded_file.merge_duration_string.lower()}, "
                     f'saved to "{downloaded_file.saved_to}"'
                 )
 
@@ -461,7 +498,7 @@ class ThrottleBuster(DownloadUtils):
                     test=test,
                     leave=leave,
                     ascii=ascii,
-                    **kwargs,
+                    **p_bar_kwargs,
                 )
 
             else:
