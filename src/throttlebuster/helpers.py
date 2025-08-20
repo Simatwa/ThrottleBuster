@@ -32,6 +32,11 @@ class CustomTqdm(tqdm.tqdm):
     def update(self, n=1):
         # avoid progresbar from surpassing 100%
         # It's not so much effective due to async nature
+
+        # It's particularly useful when range load has not been
+        # specified in request headers e.g "Range : bytes=0-" instead of
+        # "Range : bytes=0-5000"
+
         if self.disable:
             return
 
@@ -61,12 +66,10 @@ class DownloadUtils:
             list[tuple[int, int]]: list of byte offset and download size for each task
         """
         assert tasks > 0, f"Threads value {tasks} should be at least 1"
-        assert (
-            content_length > 0
-        ), f"Content-length value {content_length} should be more than 0"
-        assert (
-            tasks < content_length
-        ), f"Threads amount {tasks} should not be more than content_length {content_length}"
+        assert content_length > 0, f"Content-length value {content_length} should be more than 0"
+        assert tasks < content_length, (
+            f"Threads amount {tasks} should not be more than content_length {content_length}"
+        )
 
         # Calculate base size and distribute remainder to the first few chunks
         base_size = content_length // tasks
@@ -104,9 +107,9 @@ class DownloadUtils:
 def assert_instance(obj: object, class_or_tuple, name: str = "Parameter") -> t.NoReturn:
     """assert obj an instance of class_or_tuple"""
 
-    assert isinstance(
-        obj, class_or_tuple
-    ), f"{name} value needs to be an instance of/any of {class_or_tuple} not {type(obj)}"
+    assert isinstance(obj, class_or_tuple), (
+        f"{name} value needs to be an instance of/any of {class_or_tuple} not {type(obj)}"
+    )
 
 
 def get_filesize_string(size_in_bytes: int) -> str:

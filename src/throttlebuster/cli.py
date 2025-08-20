@@ -131,6 +131,7 @@ def throttlebuster():
     show_default=True,
 )
 @click.option("-L", "--file-size", type=click.INT, help="Size of the file to be downloaded")
+@click.option("-X", "--proxy", help="Request proxy with schema of any type [default: system-set]")
 @click.option(
     "-R",
     "--timeout-retry-attempts",
@@ -189,6 +190,18 @@ def throttlebuster():
     is_flag=True,
 )
 @click.option(
+    "--follow-redirects/--no-follow-redirects",
+    help="Follow url redirects by the server",
+    default=False,
+    show_default=True,
+)
+@click.option(
+    "--verify/--no-verify",
+    default=True,
+    help="Verify server certificate",
+    show_default=True,
+)
+@click.option(
     "-q",
     "--quiet",
     is_flag=True,
@@ -213,6 +226,9 @@ def download_command(
     merge_buffer_size: int,
     quiet: bool,
     verbose: int,
+    follow_redirects: bool,
+    verify: bool,
+    proxy: str | None,
     **run_kwargs,
 ):
     """Download file using http protocol"""
@@ -229,6 +245,10 @@ def download_command(
         merge_buffer_size=merge_buffer_size,
         request_headers=request_headers,
         cookies=list(request_cookies),
+        # Httpx args
+        follow_redirects=follow_redirects,
+        verify=verify,
+        proxy=proxy,
     )
     if quiet:
         run_kwargs["disable_progress_bar"] = True

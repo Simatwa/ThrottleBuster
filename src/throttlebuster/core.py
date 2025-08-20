@@ -64,7 +64,7 @@ class ThrottleBuster(DownloadUtils):
         part_extension: str = DOWNLOAD_PART_EXTENSION,
         request_headers: HeaderTypes = DEFAULT_REQUEST_HEADERS,
         merge_buffer_size: int | None = None,
-        **kwargs,
+        **httpx_kwargs,
     ):
         """Constructor for `ThrottleBuster`
 
@@ -77,7 +77,7 @@ class ThrottleBuster(DownloadUtils):
             request_headers (HeaderTypes, optional): Httpx request headers. Defaults to DEFAULT_REQUEST_HEADERS.
             merge_buffer_size (int|None, optional). Buffer size for merging the separated files in kilobytes. Defaults to chunk_size.
 
-        kwargs : Keyword arguments for `httpx.AsyncClient`
+        httpx_kwargs : Keyword arguments for `httpx.AsyncClient`
         """  # noqa: E501
         # TODO: add temp-dir
         assert tasks > 0 and tasks <= self.tasks_limit, (
@@ -90,7 +90,7 @@ class ThrottleBuster(DownloadUtils):
         self.part_dir = Path(part_dir)
         self.part_extension: str = part_extension
         self.merge_buffer_size: int = (chunk_size if merge_buffer_size is None else merge_buffer_size) * 1_024
-        self.client: httpx.AsyncClient = httpx.AsyncClient(**kwargs)
+        self.client: httpx.AsyncClient = httpx.AsyncClient(**httpx_kwargs)
         """httpx AsyncClient"""
         self.client.headers.update(request_headers)
 
@@ -107,9 +107,10 @@ class ThrottleBuster(DownloadUtils):
 
         return dir.joinpath(f"{filename}{index}{ext}")
 
-    def _create_headers(self, bytes_offset: int) -> dict:
+    def _create_headers(self, bytes_offset: int, bytes_load: int = None) -> dict:
         new_headers = self.client.headers.copy()
-        new_headers["Range"] = f"bytes={bytes_offset}-"
+        load_value = bytes_offset + bytes_load if bytes_load is not None else ""
+        new_headers["Range"] = f"bytes={bytes_offset}-{load_value}"
         return new_headers
 
     async def _call_progress_hook(self, progress_hook: callable, download_tracker: DownloadTracker) -> None:
@@ -245,7 +246,7 @@ class ThrottleBuster(DownloadUtils):
         async with self.client.stream(
             "GET",
             url=download_tracker.url,
-            headers=self._create_headers(download_tracker.bytes_offset),
+            headers=self._create_headers(download_tracker.bytes_offset, download_tracker.expected_size),
         ) as stream:
             stream.raise_for_status()
 
@@ -435,7 +436,12 @@ class ThrottleBuster(DownloadUtils):
                 download_duration = time.time() - download_start_time
 
                 merge_start_time = time.time()
-                p_bar.close()
+
+                try:
+                    p_bar.close()
+
+                except NameError:
+                    pass
 
                 saved_to = await self._merge_parts(
                     file_parts,
@@ -475,7 +481,12 @@ class ThrottleBuster(DownloadUtils):
             if retry_attempts_count <= timeout_retry_attempts:
                 # Retry
 
-                p_bar.clear()
+                try:
+                    p_bar.clear()
+
+                except NameError:
+                    # Sometimes it happen
+                    pass
 
                 logger.info(
                     f"Retrying download after read request timed out - "
