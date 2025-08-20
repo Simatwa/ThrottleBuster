@@ -176,16 +176,16 @@ Usage: tbust download [OPTIONS] URL
   Download file using http protocol
 
 Options:
-  -T, --tasks INTEGER RANGE     Number of tasks to carry out the download
+  -T, --tasks INTEGER RANGE       Number of tasks to carry out the download
                                   [default: 2; 1<=x<=1000]
   -Z, --chunk-size INTEGER        Streaming download chunk size in kilobytes
                                   [default: 256]
   -D, --dir DIRECTORY             Directory for saving the downloaded file to
                                   [default:
-                                  /home/...]
+                                  /home/smartwa/git/smartwa/throttlebuster]
   -P, --part-dir DIRECTORY        Directory for temporarily saving the
                                   downloaded file-parts to  [default:
-                                  /home/...]
+                                  /home/smartwa/git/smartwa/throttlebuster]
   -E, --part-extension TEXT       Filename extension for download parts
                                   [default: .part]
   -H, --request-headers TEXT...   Httpx request header - [key value] : default
@@ -197,6 +197,11 @@ Options:
   -M, --mode [start|resume|auto]  Whether to start or resume incomplete
                                   download  [default: auto]
   -L, --file-size INTEGER         Size of the file to be downloaded
+  -X, --proxy TEXT                Request proxy with schema of any type
+                                  [default: system-set]
+  -R, --timeout-retry-attempts INTEGER
+                                  Number of times to retry download upon read
+                                  request timing out  [default: 10]
   -K, --colour TEXT               Progress bar display color  [default: cyan]
   -k, --keep-parts                Whether to retain the separate download
                                   parts
@@ -205,11 +210,15 @@ Options:
                                   actually download
   -a, --ascii                     Use unicode (smooth blocks) to fill the
                                   progress-bar meter
-  -l, --no-leave                  Do not keep all leaves of the progressbar
+  -l, --no-leave                  Do not keep traces of the progressbar
   -z, --disable-progress-bar      Do not show progress_bar
   -i, --suppress-incompatible-error
                                   Do no raise error when response headers lack
                                   Etag
+  --follow-redirects / --no-follow-redirects
+                                  Follow url redirects by the server
+                                  [default: no-follow-redirects]
+  --verify / --no-verify          Verify server certificate  [default: verify]
   -q, --quiet                     Do not show any interactive information
   -v, --verbose                   Show more detailed information  [default: 0]
   --help                          Show this message and exit.

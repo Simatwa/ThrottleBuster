@@ -1,7 +1,6 @@
 """Supportive functions"""
 
 import logging
-import re
 import typing as t
 import warnings
 
@@ -137,4 +136,4 @@ def get_duration_string(time_in_seconds: int) -> str:
 
 def sanitize_filename(filename: str) -> str:
     """Remove illegal characters from a filename"""
-    return re.sub(ILLEGAL_CHARACTERS_PATTERN, "", filename.replace(":", "-"))
+    return ILLEGAL_CHARACTERS_PATTERN.sub("", filename.replace(":", "-"))

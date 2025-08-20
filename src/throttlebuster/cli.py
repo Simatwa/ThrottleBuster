@@ -174,7 +174,7 @@ def throttlebuster():
 @click.option(
     "-l",
     "--no-leave",
-    help="Do not keep all leaves of the progressbar",
+    help="Do not keep traces of the progressbar",
     is_flag=True,
 )
 @click.option(
