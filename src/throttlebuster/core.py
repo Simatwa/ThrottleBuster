@@ -6,6 +6,7 @@ import shutil
 import time
 from pathlib import Path
 from urllib.parse import urlparse
+import contextlib
 
 import aiofiles
 import httpx
@@ -437,11 +438,9 @@ class ThrottleBuster(DownloadUtils):
 
                 merge_start_time = time.time()
 
-                try:
-                    p_bar.close()
+                with contextlib.suppress(NameError, AttributeError):
+                    p_bar.clear()
 
-                except NameError:
-                    pass
 
                 saved_to = await self._merge_parts(
                     file_parts,
@@ -481,12 +480,8 @@ class ThrottleBuster(DownloadUtils):
             if retry_attempts_count <= timeout_retry_attempts:
                 # Retry
 
-                try:
+                with contextlib.suppress(NameError, AttributeError):
                     p_bar.clear()
-
-                except NameError:
-                    # Sometimes it happen
-                    pass
 
                 logger.info(
                     f"Retrying download after read request timed out - "
