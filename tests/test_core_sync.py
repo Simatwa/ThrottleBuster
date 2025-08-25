@@ -26,7 +26,9 @@ def test_real_download(tasks_amount: int):
         part_dir=PART_DIR,
         tasks=tasks_amount,
     )
-    downloaded_file = throttlebuster.run_sync(FILE_URL, mode=DownloadMode.START, disable_progress_bar=True)
+    downloaded_file = throttlebuster.run_sync(
+        FILE_URL, mode=DownloadMode.START, disable_progress_bar=True
+    )
     assert downloaded_file.saved_to.exists()
     assert downloaded_file.tasks_used == tasks_amount
     assert downloaded_file.is_complete
@@ -38,7 +40,9 @@ def test_different_tasks_time():
     for task in range(1, 5):
         # Ensure file size is big enough or throttling is small enough
         # for time difference to be noticed
-        throttlebuster = ThrottleBuster(dir=DOWNLOAD_DIR, part_dir=PART_DIR, tasks=task)
+        throttlebuster = ThrottleBuster(
+            dir=DOWNLOAD_DIR, part_dir=PART_DIR, tasks=task
+        )
         downloaded_file = throttlebuster.run_sync(
             FILE_URL, mode=DownloadMode.START, disable_progress_bar=True
         )
@@ -49,7 +53,9 @@ def test_different_tasks_time():
 
         if downloaded_file_items:
             previous_dowloaded_file = downloaded_file_items[-1]
-            assert downloaded_file.duration < previous_dowloaded_file.duration
+            assert (
+                downloaded_file.duration < previous_dowloaded_file.duration
+            )
 
         downloaded_file_items.append(downloaded_file)
 

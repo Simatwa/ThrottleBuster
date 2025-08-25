@@ -24,14 +24,18 @@ command_context_settings = dict(auto_envvar_prefix="THROTTLEBUSTER")
 def prepare_start(quiet: bool, verbose: bool) -> None:
     """Set up some stuff for better CLI usage such as:
 
-    - Set higher logging level for some packages.
+    - Setting higher logging level for some packages.
     ...
 
     """
     if verbose > 3:
         verbose = 2
     logging.basicConfig(
-        format=("[%(asctime)s] : %(levelname)s - %(message)s" if verbose else "[%(module)s] %(message)s"),
+        format=(
+            "[%(asctime)s] : %(levelname)s - %(message)s"
+            if verbose
+            else "[%(module)s] %(message)s"
+        ),
         datefmt="%d-%b-%Y %H:%M:%S",
         level=(
             logging.ERROR
@@ -54,7 +58,7 @@ def prepare_start(quiet: bool, verbose: bool) -> None:
 @click.group()
 @click.version_option(package_name="throttlebuster")
 def throttlebuster():
-    """Accelerate file downloads by overcoming common throttling restrictions
+    """Accelerate file downloads by overcoming throttling restrictions
     envvar-prefix : THROTTLEBUSTER."""
 
 
@@ -80,7 +84,9 @@ def throttlebuster():
     "-D",
     "--dir",
     help="Directory for saving the downloaded file to",
-    type=click.Path(exists=True, file_okay=False, writable=True, resolve_path=True),
+    type=click.Path(
+        exists=True, file_okay=False, writable=True, resolve_path=True
+    ),
     default=CURRENT_WORKING_DIR,
     show_default=True,
 )
@@ -88,7 +94,9 @@ def throttlebuster():
     "-P",
     "--part-dir",
     help="Directory for temporarily saving the downloaded file-parts to",
-    type=click.Path(exists=True, file_okay=False, writable=True, resolve_path=True),
+    type=click.Path(
+        exists=True, file_okay=False, writable=True, resolve_path=True
+    ),
     default=CURRENT_WORKING_DIR,
     show_default=True,
 )
@@ -121,7 +129,9 @@ def throttlebuster():
     help="Buffer size for merging the separated files in kilobytes",
     show_default=True,
 )
-@click.option("-F", "--filename", help="Filename for the downloaded content")
+@click.option(
+    "-F", "--filename", help="Filename for the downloaded content"
+)
 @click.option(
     "-M",
     "--mode",
@@ -130,8 +140,17 @@ def throttlebuster():
     default=DownloadMode.AUTO.value,
     show_default=True,
 )
-@click.option("-L", "--file-size", type=click.INT, help="Size of the file to be downloaded")
-@click.option("-X", "--proxy", help="Request proxy with schema of any type [default: system-set]")
+@click.option(
+    "-L",
+    "--file-size",
+    type=click.INT,
+    help="Size of the file to be downloaded",
+)
+@click.option(
+    "-X",
+    "--proxy",
+    help="Request proxy with schema of any type [default: system-set]",
+)
 @click.option(
     "-R",
     "--timeout-retry-attempts",
@@ -267,21 +286,36 @@ def download_command(
     "--url",
     help="Url to the target file",
 )
-@click.option("-S", "--size", type=click.INT, help="Size in bytes of the targeted file")
+@click.option(
+    "-S",
+    "--size",
+    type=click.INT,
+    help="Size in bytes of the targeted file",
+)
 @click.option(
     "-T",
     "--tasks",
     help="Tasks amount to base the estimate on : Range (2-30)",
     type=click.IntRange(1, DEFAULT_TASKS_LIMIT),
 )
-@click.option("-j", "--json", is_flag=True, help="Stdout estimates in json format")
-def estimate_command(throttle: int, url: str | None, size: int, tasks: int, json: bool):
+@click.option(
+    "-j", "--json", is_flag=True, help="Stdout estimates in json format"
+)
+def estimate_command(
+    throttle: int, url: str | None, size: int, tasks: int, json: bool
+):
     """Estimate download duration for different tasks"""
-    assert size or url, "Either size of the file (--size) or url to it (--url) is required."
+    assert size or url, (
+        "Either size of the file (--size) or url to it (--url) is "
+        "required."
+    )
 
     import rich
 
-    from throttlebuster.helpers import get_duration_string, get_filesize_string
+    from throttlebuster.helpers import (
+        get_duration_string,
+        get_filesize_string,
+    )
 
     if size:
         size_in_bytes = size
@@ -300,7 +334,9 @@ def estimate_command(throttle: int, url: str | None, size: int, tasks: int, json
         download_duration = load_per_task / throttle
         download_duration_string = get_duration_string(download_duration)
         load_per_task_string = get_filesize_string(load_per_task)
-        estimates.append((str(task), download_duration_string, load_per_task_string))
+        estimates.append(
+            (str(task), download_duration_string, load_per_task_string)
+        )
 
     if tasks is None:
         for task in range(1, 21):
@@ -320,7 +356,10 @@ def estimate_command(throttle: int, url: str | None, size: int, tasks: int, json
             "Tasks",
             "Duration",
             "Load per task",
-            title=(f"{get_filesize_string(size_in_bytes)} at {get_filesize_string(throttle)}/s"),
+            title=(
+                f"{get_filesize_string(size_in_bytes)} at "
+                f"{get_filesize_string(throttle)}/s"
+            ),
             show_lines=False,
         )
         for row in estimates:
@@ -337,7 +376,9 @@ def main():
         sys.exit(throttlebuster())
 
     except Exception as e:
-        exception_msg = str({e.args[1] if e.args and len(e.args) > 1 else e})
+        exception_msg = str(
+            {e.args[1] if e.args and len(e.args) > 1 else e}
+        )
 
         if DEBUG:
             logging.exception(e)

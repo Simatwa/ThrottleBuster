@@ -83,4 +83,10 @@ from throttlebuster.core import ThrottleBuster
 from throttlebuster.helpers import logger
 from throttlebuster.models import DownloadedFile, DownloadTracker
 
-__all__ = ["ThrottleBuster", "DownloadTracker", "DownloadedFile", "DownloadMode", "logger"]
+__all__ = [
+    "ThrottleBuster",
+    "DownloadTracker",
+    "DownloadedFile",
+    "DownloadMode",
+    "logger",
+]
