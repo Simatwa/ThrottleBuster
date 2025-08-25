@@ -44,7 +44,8 @@ def test_help(command):
     argvalues=[
         ["download http://localhost:8888/miel-martin.webm --test"],
         [
-            "download http://localhost:8888/miel-martin.webm --test --tasks 3"
+            "download http://localhost:8888/miel-martin.webm --test "
+            "--tasks 3"
         ],
     ],
 )
@@ -61,7 +62,8 @@ def test_download(command):
         ["estimate --url http://localhost:8888/miel-martin.webm 500000"],
         ["estimate --size 1010029 300000"],
         [
-            "estimate --url http://localhost:8888/miel-martin.webm 500000 --json"
+            "estimate --url http://localhost:8888/miel-martin.webm 500000 "
+            "--json"
         ],
         ["estimate --size 1010029 300000 --json"],
     ],

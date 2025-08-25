@@ -145,7 +145,7 @@ class ThrottleBuster(DownloadUtils):
         filename: Path,
         content_length: int,
         keep_parts: bool = False,
-        colour: str = "cyan",
+        colour: str = "yellow",
         disable_progress_bar: bool = False,
         simple: bool = False,
         ascii: bool = False,
@@ -257,6 +257,17 @@ class ThrottleBuster(DownloadUtils):
 
         else:
             download_tracker.download_mode = DownloadMode.START
+
+        if (
+            download_tracker.downloaded_size
+            >= download_tracker.expected_size
+        ):
+            # Let's avoid redownloading #5
+            logger.info(
+                f"Filepart already downloaded to "
+                f'"{download_tracker.saved_to}"'
+            )
+            return download_tracker
 
         logger.debug(
             f"Downloading file-part {download_tracker.index} "
@@ -513,7 +524,7 @@ class ThrottleBuster(DownloadUtils):
                     filename=filename,
                     keep_parts=keep_parts,
                     content_length=content_length,
-                    colour=colour,
+                    # colour=colour, # Defaulted to Yellow #4
                     disable_progress_bar=disable_progress_bar,
                     simple=simple,
                     ascii=ascii,
