@@ -456,12 +456,12 @@ class ThrottleBuster(DownloadUtils):
                     )
                     return stream
 
-                mode = (
+                mode_str = (
                     "Starting" if retry_attempts_count == 0 else "Resuming"
                 )
 
                 logger.info(
-                    f"{mode} download process ({self.tasks} tasks, "
+                    f"{mode_str} download process ({self.tasks} tasks, "
                     f'{size_with_unit}) - "{filename}"'
                 )
                 p_bar = CustomTqdm(
