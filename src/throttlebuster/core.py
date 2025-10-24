@@ -149,6 +149,7 @@ class ThrottleBuster(DownloadUtils):
         disable_progress_bar: bool = False,
         simple: bool = False,
         ascii: bool = False,
+        dir: Path = None,
         **p_bar_kwargs,
     ) -> Path:
         """Combines the separated download parts into one.
@@ -162,7 +163,9 @@ class ThrottleBuster(DownloadUtils):
             Path: Filepath to the merged parts.
         """
 
-        save_to = self.dir.joinpath(filename)
+        chosen_dir = dir or self.dir
+
+        save_to = chosen_dir.joinpath(filename)
         ordered_parts: list[DownloadTracker] = []
 
         for part in file_parts:
@@ -326,6 +329,7 @@ class ThrottleBuster(DownloadUtils):
         test: bool = False,
         leave: bool = True,
         ascii: bool = False,
+        dir: Path = None,
         **p_bar_kwargs,
     ) -> DownloadedFile | httpx.Response:
         """Initiate download process of a file.
@@ -345,6 +349,7 @@ class ThrottleBuster(DownloadUtils):
             simple (bool, optional): Show percentage and bar only in progressbar. Deafults to False.
             test (bool, optional): Just test if download is possible but do not actually download. Defaults to False.
             ascii (bool, optional): Use unicode (smooth blocks) to fill the progress-bar meter. Defaults to False.
+            dir (Path, optional): Override the class level dir with this value. Defaults to None
 
         p_bar_kwargs: Other keyword arguments for `tqdm.tdqm`
 
@@ -362,6 +367,8 @@ class ThrottleBuster(DownloadUtils):
 
         async_task_items = []
         download_tracker_items = []
+
+        chosen_dir = dir or self.dir
 
         if disable_progress_bar is None:
             disable_progress_bar = progress_hook is not None
@@ -411,7 +418,7 @@ class ThrottleBuster(DownloadUtils):
                 filename = sanitize_filename(filename)
 
                 final_saved_to = self._generate_saved_to(
-                    filename, self.dir
+                    filename, chosen_dir
                 )
 
                 if content_length is None:
@@ -528,6 +535,7 @@ class ThrottleBuster(DownloadUtils):
                     disable_progress_bar=disable_progress_bar,
                     simple=simple,
                     ascii=ascii,
+                    dir=chosen_dir,
                     **p_bar_kwargs,
                 )
 
