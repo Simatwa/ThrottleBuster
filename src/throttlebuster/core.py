@@ -65,6 +65,7 @@ class ThrottleBuster(DownloadUtils):
         part_extension: str = DOWNLOAD_PART_EXTENSION,
         request_headers: HeaderTypes = DEFAULT_REQUEST_HEADERS,
         merge_buffer_size: int | None = None,
+        suppress_incompatible_error: bool = False,
         **httpx_kwargs,
     ):
         """Constructor for `ThrottleBuster`
@@ -77,6 +78,7 @@ class ThrottleBuster(DownloadUtils):
             part_extension (str, optional): Filename extension for download parts. Defaults to DOWNLOAD_PART_EXTENSION.
             request_headers (HeaderTypes, optional): Httpx request headers. Defaults to DEFAULT_REQUEST_HEADERS.
             merge_buffer_size (int|None, optional). Buffer size for merging the separated files in kilobytes. Defaults to chunk_size.
+            suppress_incompatible_error (bool, optional): Do no raise error when response headers lack Etag. Defaults to False.
 
         httpx_kwargs : Keyword arguments for `httpx.AsyncClient`
         """  # noqa: E501
@@ -97,6 +99,7 @@ class ThrottleBuster(DownloadUtils):
         self.client: httpx.AsyncClient = httpx.AsyncClient(**httpx_kwargs)
         """httpx AsyncClient"""
         self.client.headers.update(request_headers)
+        self.suppress_incompatible_error = suppress_incompatible_error
 
     def __repr__(self) -> str:
         return (
@@ -321,7 +324,7 @@ class ThrottleBuster(DownloadUtils):
         disable_progress_bar: bool = None,
         file_size: int = None,
         keep_parts: bool = False,
-        suppress_incompatible_error: bool = False,
+        suppress_incompatible_error: bool = None,
         timeout_retry_attempts: int = DEFAULT_READ_TIMEOUT_ATTEMPTS,
         retry_attempts_count: int = 0,
         colour: str = "cyan",
@@ -342,7 +345,7 @@ class ThrottleBuster(DownloadUtils):
             disable_progress_bar (bool, optional): Defaults to None (decide based on progress_hook).
             file_size (int, optional): Size of the file to be downloaded. Defaults to None.
             keep_parts (bool, optional): Whether to retain the separate download parts. Defaults to False.
-            suppress_incompatible_error (bool, optional): Do no raise error when response headers lack Etag. Defaults to False.
+            suppress_incompatible_error (bool, optional): Ovveride class level incompatible-error suppression flag.
             timeout_retry_attempts (int, optional): Number of times to retry download upon read request timing out. Defaults to DEFAULT_READ_TIMEOUT_ATTEMPTS.
             leave (bool, optional): Keep all leaves of the progressbar. Defaults to True.
             colour (str, optional): Progress bar display color. Defaults to "cyan".
@@ -382,9 +385,15 @@ class ThrottleBuster(DownloadUtils):
             async with self.client.stream("GET", url=url) as stream:
                 stream.raise_for_status()
 
+                suppress_incompatible_error_flag = (
+                    suppress_incompatible_error
+                    if suppress_incompatible_error is not None
+                    else self.suppress_incompatible_error
+                )
+
                 if (
                     stream.headers.get("Etag") is None
-                    and suppress_incompatible_error is False
+                    and not suppress_incompatible_error_flag
                     and self.tasks != 1
                 ):
                     raise IncompatibleServerError(
