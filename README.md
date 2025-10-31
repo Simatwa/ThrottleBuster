@@ -140,16 +140,18 @@ $ python -m throttlebuster --help
 ```
 Usage: python -m throttlebuster [OPTIONS] COMMAND [ARGS]...
 
-  Accelerate file downloads by overcoming common throttling restrictions
-  envvar-prefix : THROTTLEBUSTER.
+  Accelerate file downloads by overcoming throttling restrictions envvar-
+  prefix : THROTTLEBUSTER.
 
 Options:
   --version  Show the version and exit.
   --help     Show this message and exit.
 
 Commands:
-  download  Download file using http protocol
-  estimate  Estimate download duration for different tasks
+  d         Download file using http/s protocol
+  download  Download file using http/s protocol
+  e         Estimate download duration for different task amount
+  estimate  Estimate download duration for different task amount
 ```
 
 </details>
@@ -171,9 +173,9 @@ $ python -m throttlebuster download --help
 </summary>
 
 ```
-Usage: tbust download [OPTIONS] URL
+Usage: python -m throttlebuster download [OPTIONS] URL
 
-  Download file using http protocol
+  Download file using http/s protocol
 
 Options:
   -T, --tasks INTEGER RANGE       Number of tasks to carry out the download
@@ -286,7 +288,7 @@ $ python -m throttlebuster estimate --help
 ```
 Usage: python -m throttlebuster estimate [OPTIONS] THROTTLE
 
-  Estimate download duration for different tasks
+  Estimate download duration for different task amount
 
 Options:
   -U, --url TEXT             Url to the target file
