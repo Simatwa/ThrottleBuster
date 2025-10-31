@@ -250,7 +250,7 @@ def download_command(
     proxy: str | None,
     **run_kwargs,
 ):
-    """Download file using http protocol"""
+    """Download file using http/s protocol"""
     prepare_start(quiet, verbose)
 
     from throttlebuster import ThrottleBuster
@@ -304,7 +304,7 @@ def download_command(
 def estimate_command(
     throttle: int, url: str | None, size: int, tasks: int, json: bool
 ):
-    """Estimate download duration for different tasks"""
+    """Estimate download duration for different task amount"""
     assert size or url, (
         "Either size of the file (--size) or url to it (--url) is "
         "required."
@@ -373,6 +373,9 @@ def main():
     try:
         throttlebuster.add_command(download_command, "download")
         throttlebuster.add_command(estimate_command, "estimate")
+        throttlebuster.add_command(download_command, "d")
+        throttlebuster.add_command(estimate_command, "e")
+
         sys.exit(throttlebuster())
 
     except Exception as e:

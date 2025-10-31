@@ -17,7 +17,7 @@ test:
 	coverage run -m pytest -v
 
 # Target to create coverage-badge
-coveragebadge:
+coverage-badge:
 	coverage-badge -o assets/coverage.svg -f
 
 # target to build dist

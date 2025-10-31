@@ -148,7 +148,7 @@ class ThrottleBuster(DownloadUtils):
         filename: Path,
         content_length: int,
         keep_parts: bool = False,
-        colour: str = "yellow",
+        colour: str = "gray",
         disable_progress_bar: bool = False,
         simple: bool = False,
         ascii: bool = False,
@@ -228,7 +228,12 @@ class ThrottleBuster(DownloadUtils):
 
                         p_bar.update(self.bytes_to_mb(current_read_size))
 
-                if not keep_parts:
+            if not keep_parts:
+                logger.debug(
+                    f"Clearing {len(ordered_parts)} file download parts"
+                )
+
+                for part in ordered_parts:
                     os.remove(part.saved_to)
 
         return save_to
