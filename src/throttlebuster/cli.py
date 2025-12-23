@@ -250,7 +250,7 @@ def download_command(
     proxy: str | None,
     **run_kwargs,
 ):
-    """Download file using http/s protocol"""
+    """Download file using http(s) protocol"""
     prepare_start(quiet, verbose)
 
     from throttlebuster import ThrottleBuster
@@ -295,7 +295,7 @@ def download_command(
 @click.option(
     "-T",
     "--tasks",
-    help="Tasks amount to base the estimate on : Range (2-30)",
+    help="Tasks amount to base the estimate on",
     type=click.IntRange(1, DEFAULT_TASKS_LIMIT),
 )
 @click.option(
@@ -373,6 +373,7 @@ def main():
     try:
         throttlebuster.add_command(download_command, "download")
         throttlebuster.add_command(estimate_command, "estimate")
+
         throttlebuster.add_command(download_command, "d")
         throttlebuster.add_command(estimate_command, "e")
 
