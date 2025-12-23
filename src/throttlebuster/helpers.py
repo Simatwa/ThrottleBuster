@@ -72,7 +72,7 @@ class DownloadUtils:
             f"Content-length value {content_length} should be more than 0"
         )
         assert tasks < content_length, (
-            f"Threads amount {tasks} should not be more than "
+            f"Task amount {tasks} should not be more than "
             f"content_length {content_length}"
         )
 
