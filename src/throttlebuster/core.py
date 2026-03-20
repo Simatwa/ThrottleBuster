@@ -573,7 +573,7 @@ class ThrottleBuster(DownloadUtils):
 
                 return downloaded_file
 
-        except httpx.ReadTimeout as e:
+        except (httpx.ReadTimeout, httpx.ConnectTimeout) as e:
             retry_attempts_count += 1
 
             if retry_attempts_count <= timeout_retry_attempts:
