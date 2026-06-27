@@ -2,6 +2,7 @@
 
 import asyncio
 import contextlib
+import inspect
 import os
 import shutil
 import time
@@ -134,7 +135,7 @@ class ThrottleBuster(DownloadUtils):
         if progress_hook is None:
             return
 
-        if asyncio.iscoroutinefunction(progress_hook):
+        if inspect.iscoroutinefunction(progress_hook):
             await progress_hook(download_tracker)
 
         else:
