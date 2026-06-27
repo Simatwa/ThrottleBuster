@@ -605,6 +605,7 @@ class ThrottleBuster(DownloadUtils):
                     test=test,
                     leave=leave,
                     ascii=ascii,
+                    dir=dir,
                     **p_bar_kwargs,
                 )
 
